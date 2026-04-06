@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser Tweaks</title>
+    <style>
+      :root {
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #f1f5f9;
+        background: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+
+      main {
+        max-width: 480px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+      }
+
+      section {
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 16px;
+        background: #1e293b;
+      }
+
+      .option-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      label {
+        line-height: 1.35;
+      }
+
+      .status {
+        margin-top: 12px;
+        min-height: 1.25rem;
+        color: #93c5fd;
+      }
+
+      .warning {
+        margin-top: 16px;
+        color: #f59e0b;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Browser Tweaks</h1>
+
+      <section>
+        <h2>Theme Syncer</h2>
+        <div class="option-row">
+          <input type="checkbox" id="themeSyncerEnabled" />
+          <label for="themeSyncerEnabled">
+            Enable Theme Syncer (device theme synchronization)
+          </label>
+        </div>
+        <div class="option-row">
+          <input type="checkbox" id="themeSyncerYoutubeEnabled" />
+          <label for="themeSyncerYoutubeEnabled">
+            Apply to YouTube pages
+          </label>
+        </div>
+        <p class="warning">
+          If you manually force YouTube to Light/Dark (without "Use device theme"),
+          disable the YouTube toggle to avoid fighting your explicit preference.
+        </p>
+      </section>
+
+      <div id="status" class="status" aria-live="polite"></div>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
