@@ -1,6 +1,36 @@
 # Graft
 
-Chrome MV3 extension for small, focused tweaks on the web (theme sync, element hiding, YouTube metadata translation).
+[![CI](https://github.com/itsasheruwu/graft/actions/workflows/ci.yml/badge.svg)](https://github.com/itsasheruwu/graft/actions/workflows/ci.yml)
+
+A focused Chrome extension for grafting small fixes onto the web — one tweak at a time, with a clean settings UI and no bloat.
+
+**Install from source:** clone, build, load `dist/` unpacked (see [Install](#install)).  
+There is no Chrome Web Store listing yet.
+
+## Tweaks
+
+| Tweak | What it does |
+|-------|----------------|
+| **Theme Syncer** | Mirrors your system light/dark preference on supported pages. YouTube gets dedicated handling (nested toggle + per-site blocklist). |
+| **Element Selector** | Hover and hide page elements. Removals persist per domain even when selector mode is off. Export/import, undo, and bulk unhide supported. Shortcut: `Alt+Shift+E`. |
+| **YouTube Auto Translation** | Translates foreign video titles and descriptions into your browser language (or a fixed target language). Skips low-confidence detections; original text preserved on hover. |
+
+Open the toolbar popup for quick toggles, or **All settings** for the full options page. Hidden elements are managed at `hidden-elements.html`.
+
+## Install
+
+```bash
+git clone https://github.com/itsasheruwu/graft.git
+cd graft
+npm install
+npm run build
+```
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked** and select the **`dist/`** folder
+
+After code changes, run `npm run build` again (or `npm run watch`) and click **Reload** on the extension card.
 
 ## Development
 
@@ -9,11 +39,10 @@ npm install
 npm run build      # production build → dist/
 npm run watch      # rebuild dist/ on file changes
 npm test           # Vitest unit tests for shared libs
+npm run dev        # Vite preview of popup UI only (not full extension)
 ```
 
-Load **`dist/`** as an unpacked extension in `chrome://extensions` (Developer mode → Load unpacked).
-
-## Adding a tweak
+### Adding a tweak
 
 1. Register the tweak in [`src/tweaks/registry.js`](src/tweaks/registry.js) (entrypoints, match patterns, storage keys, UI keys).
 2. Implement scripts under `src/tweaks/<id>/`.
@@ -22,7 +51,7 @@ Load **`dist/`** as an unpacked extension in `chrome://extensions` (Developer mo
 
 Bridge + MAIN-world pairs are required when page DOM must be touched; isolated scripts own `chrome.storage` I/O.
 
-## Project layout
+### Project layout
 
 | Path | Role |
 |------|------|
@@ -31,6 +60,17 @@ Bridge + MAIN-world pairs are required when page DOM must be touched; isolated s
 | `src/background/service_worker.js` | Defaults, migrations, translate API queue |
 | `popup.html` / `options.html` / `hidden-elements.html` | Vite React entry pages |
 
-## Learned conventions
+## Privacy
 
-See [`AGENTS.md`](AGENTS.md) for user preferences and architecture notes.
+- **Theme Syncer** and **Element Selector** run locally in your browser. Element hides are stored in extension storage on your device.
+- **YouTube Auto Translation** sends text to Google’s Translate API via the extension service worker when a translation is needed. No analytics or accounts are involved.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bug reports and feature requests: [GitHub Issues](https://github.com/itsasheruwu/graft/issues).
+
+Architecture notes and agent conventions: [`AGENTS.md`](AGENTS.md).
+
+## License
+
+[MIT](LICENSE)

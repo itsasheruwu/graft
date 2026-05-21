@@ -1,0 +1,77 @@
+name: Bug report
+description: Something in Graft is broken or behaving unexpectedly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Include enough detail to reproduce the issue.
+
+  - type: dropdown
+    id: tweak
+    attributes:
+      label: Which tweak?
+      options:
+        - Theme Syncer
+        - Element Selector
+        - YouTube Auto Translation
+        - Extension UI (popup / options)
+        - Build / development
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Graft version
+      description: From `chrome://extensions` or `manifest.json`
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Chrome 131"
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Page URL (if site-specific)
+      placeholder: "https://www.youtube.com/watch?v=..."
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Enable ...
+        2. Open ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Console logs or screenshots
+      description: Service worker logs, page console, or screenshots help a lot.

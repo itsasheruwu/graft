@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Development guide
+    url: https://github.com/itsasheruwu/graft/blob/main/README.md#adding-a-tweak
+    about: Read how tweaks are registered and built before opening a feature request.

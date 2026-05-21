@@ -1,8 +1,18 @@
 {
   "name": "graft",
   "version": "1.0.0",
+  "description": "A focused kit for grafting small fixes onto the web.",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itsasheruwu/graft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itsasheruwu/graft/issues"
+  },
+  "homepage": "https://github.com/itsasheruwu/graft#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

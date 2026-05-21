@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a new tweak or improvement to Graft
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Graft is intentionally small — one focused fix per tweak. Describe the problem first, then the smallest change that would solve it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      placeholder: "On YouTube, I always have to ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Likely scope
+      options:
+        - New tweak
+        - Extend an existing tweak
+        - Extension UI / settings only
+        - Developer tooling
+    validations:
+      required: true
+
+  - type: input
+    id: sites
+    attributes:
+      label: Target site(s)
+      placeholder: "youtube.com, all sites, etc."
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to open a PR for this
+          required: false
