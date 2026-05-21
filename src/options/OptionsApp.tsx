@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -19,42 +18,32 @@ import { ElementSelectorSettings } from "@/components/tweaks/element-selector-se
 import { YoutubeAutoTranslateSettings } from "@/components/tweaks/youtube-auto-translate-settings";
 import { useTweakStatusBadges } from "@/hooks/use-tweak-status-badges";
 
-export function PopupApp() {
+export function OptionsApp() {
   const badges = useTweakStatusBadges();
 
   return (
-    <div className="space-y-3">
-      <header className="flex items-center justify-between gap-2">
-        <h1 className="text-sm font-semibold tracking-tight text-foreground">
+    <main className="mx-auto max-w-lg space-y-6 px-6 py-10">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Graft
         </h1>
-        <Button
-          type="button"
-          variant="link"
-          size="xs"
-          className="h-auto px-0 text-muted-foreground hover:text-foreground"
-          onClick={() => {
-            chrome.runtime.openOptionsPage();
-          }}
-        >
-          All settings
-        </Button>
-      </header>
+        <p className="text-sm text-muted-foreground">
+          Control how Graft tweaks behave across your browser.
+        </p>
+      </div>
 
       <Card className="gap-0 border-border/80 shadow-sm">
         <CardHeader className="space-y-1 pb-3">
-          <CardTitle className="text-sm font-semibold tracking-tight">
-            Tweaks
-          </CardTitle>
-          <CardDescription className="text-xs leading-relaxed">
-            Expand a tweak to configure it. Green dots mean a tweak is on.
+          <CardTitle className="text-base font-medium">Tweaks</CardTitle>
+          <CardDescription className="text-sm leading-relaxed">
+            Expand a tweak to change its settings. Green dots show which tweaks are on.
           </CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="pt-3">
           <Accordion
-            type="single"
-            collapsible
+            type="multiple"
+            defaultValue={["theme-syncer", "youtube-auto-translate", "element-selector"]}
             className="w-full"
           >
             <AccordionItem value="theme-syncer" className="border-border/60">
@@ -65,12 +54,12 @@ export function PopupApp() {
                     Theme Syncer
                   </span>
                   <span className="text-xs font-normal leading-snug text-muted-foreground">
-                    Match sites to system light / dark
+                    Match page themes to your device appearance
                   </span>
                 </span>
               </AccordionTrigger>
               <AccordionContent>
-                <ThemeSyncerSettings variant="popup" />
+                <ThemeSyncerSettings variant="options" />
               </AccordionContent>
             </AccordionItem>
             <AccordionItem
@@ -81,15 +70,15 @@ export function PopupApp() {
                 <TweakStatusDot active={badges.youtubeAutoTranslate} />
                 <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
                   <span className="text-sm font-medium leading-tight">
-                    YouTube Translation
+                    YouTube Auto Translation
                   </span>
                   <span className="text-xs font-normal leading-snug text-muted-foreground">
-                    Translate video metadata
+                    Translate titles and descriptions into your browser language
                   </span>
                 </span>
               </AccordionTrigger>
               <AccordionContent>
-                <YoutubeAutoTranslateSettings variant="popup" />
+                <YoutubeAutoTranslateSettings variant="options" />
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="element-selector" className="border-border/60">
@@ -100,17 +89,17 @@ export function PopupApp() {
                     Element Selector
                   </span>
                   <span className="text-xs font-normal leading-snug text-muted-foreground">
-                    Hide/inspect elements with an in-page selector
+                    Hide and inspect page elements with hover actions
                   </span>
                 </span>
               </AccordionTrigger>
               <AccordionContent>
-                <ElementSelectorSettings variant="popup" />
+                <ElementSelectorSettings variant="options" />
               </AccordionContent>
             </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

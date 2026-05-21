@@ -1,12 +1,13 @@
 (function () {
   "use strict";
 
-  const MESSAGE_SOURCE = "browser-tweaks-theme-sync";
+  const MESSAGE_SOURCE = "graft-theme-sync";
   const MESSAGE_TYPE = "BROWSER_TWEAKS_THEME";
 
   const DEFAULT_SETTINGS = {
     themeSyncerEnabled: true,
-    themeSyncerYoutubeEnabled: true
+    themeSyncerYoutubeEnabled: true,
+    themeSyncerBlockedDomains: []
   };
 
   function buildPayload(settings, isDark) {
@@ -46,7 +47,11 @@
       if (area !== "sync") {
         return;
       }
-      if (!("themeSyncerEnabled" in changes) && !("themeSyncerYoutubeEnabled" in changes)) {
+      if (
+        !("themeSyncerEnabled" in changes) &&
+        !("themeSyncerYoutubeEnabled" in changes) &&
+        !("themeSyncerBlockedDomains" in changes)
+      ) {
         return;
       }
       broadcast();

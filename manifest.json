@@ -1,39 +1,37 @@
 {
   "manifest_version": 3,
-  "name": "Browser Tweaks",
-  "description": "A collection of small Chrome browser tweaks.",
+  "name": "Graft",
+  "description": "A focused kit for grafting small fixes onto the web.",
   "version": "1.0.0",
   "minimum_chrome_version": "111",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://youtube.com/*",
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://music.youtube.com/*",
+    "https://*.youtube.com/*",
+    "https://translate.googleapis.com/*"
+  ],
   "background": {
     "service_worker": "src/background/service_worker.js"
   },
-  "action": {
-    "default_title": "Browser Tweaks",
-    "default_popup": "src/popup/popup.html"
+  "icons": {
+    "16": "src/assets/icons/graft-16.png",
+    "32": "src/assets/icons/graft-32.png",
+    "48": "src/assets/icons/graft-48.png",
+    "128": "src/assets/icons/graft-128.png"
   },
-  "options_page": "src/options/options.html",
-  "content_scripts": [
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "src/tweaks/theme-syncer/page.js"
-      ],
-      "run_at": "document_start",
-      "world": "MAIN"
+  "action": {
+    "default_title": "Graft",
+    "default_icon": {
+      "16": "src/assets/icons/graft-16.png",
+      "32": "src/assets/icons/graft-32.png",
+      "48": "src/assets/icons/graft-48.png",
+      "128": "src/assets/icons/graft-128.png"
     },
-    {
-      "matches": [
-        "http://*/*",
-        "https://*/*"
-      ],
-      "js": [
-        "src/tweaks/theme-syncer/bridge.js"
-      ],
-      "run_at": "document_start"
-    }
-  ]
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": []
 }

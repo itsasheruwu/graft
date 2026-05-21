@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { defineConfig } from "vite";
+import {
+  buildContentScripts,
+  listEntrypointCopyPaths,
+  loadRegistry,
+} from "./src/build/registry-build.mjs";
 
 function extensionManifestPlugin() {
   return {
@@ -10,44 +15,58 @@ function extensionManifestPlugin() {
     closeBundle() {
       const root = __dirname;
       const dist = path.join(root, "dist");
-      mkdirSync(path.join(dist, "src", "background"), { recursive: true });
-      mkdirSync(path.join(dist, "src", "tweaks", "theme-syncer"), {
-        recursive: true,
-      });
+      const registry = loadRegistry();
+
+      for (const filePath of listEntrypointCopyPaths(registry)) {
+        const dest = path.join(dist, filePath);
+        mkdirSync(path.dirname(dest), { recursive: true });
+        cpSync(path.join(root, filePath), dest);
+      }
 
       cpSync(
-        path.join(root, "src", "background", "service_worker.js"),
-        path.join(dist, "src", "background", "service_worker.js")
-      );
-      cpSync(
-        path.join(root, "src", "tweaks", "theme-syncer", "page.js"),
-        path.join(dist, "src", "tweaks", "theme-syncer", "page.js")
-      );
-      cpSync(
-        path.join(root, "src", "tweaks", "theme-syncer", "bridge.js"),
-        path.join(dist, "src", "tweaks", "theme-syncer", "bridge.js")
+        path.join(root, "src", "assets", "icons"),
+        path.join(dist, "src", "assets", "icons"),
+        { recursive: true }
       );
 
       const manifestSrc = readFileSync(
         path.join(root, "manifest.json"),
         "utf8"
       );
-      const manifest = JSON.parse(manifestSrc) as {
-        action?: { default_popup: string };
-        options_page?: string;
-        background?: { service_worker: string };
-        content_scripts?: Array<{ js: string[] }>;
-      };
+      const manifest = JSON.parse(manifestSrc) as Record<string, unknown>;
 
       manifest.action = {
-        ...manifest.action,
+        ...(manifest.action as object),
         default_popup: "popup.html",
       };
       manifest.options_page = "options.html";
-      if (manifest.background?.service_worker) {
-        manifest.background = {
-          service_worker: "src/background/service_worker.js",
-        };
+      manifest.background = {
+        service_worker: "src/background/service_worker.js",
+      };
+      manifest.content_scripts = buildContentScripts(registry);
+
+      if (registry.commands) {
+        const commands: Record<
+          string,
+          { description: string; suggested_key?: { default: string; mac?: string } }
+        > = {};
+        for (const [name, spec] of Object.entries(
+          registry.commands as Record<
+            string,
+            { description: string; suggestedKey?: { default: string; mac?: string } }
+          >
+        )) {
+          commands[name] = {
+            description: spec.description,
+            suggested_key: spec.suggestedKey
+              ? {
+                  default: spec.suggestedKey.default,
+                  mac: spec.suggestedKey.mac ?? spec.suggestedKey.default,
+                }
+              : undefined,
+          };
+        }
+        manifest.commands = commands;
       }
 
       writeFileSync(
@@ -60,6 +79,7 @@ function extensionManifestPlugin() {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [react(), tailwindcss(), extensionManifestPlugin()],
   resolve: {
     alias: {
@@ -73,6 +93,7 @@ export default defineConfig({
       input: {
         popup: path.resolve(__dirname, "popup.html"),
         options: path.resolve(__dirname, "options.html"),
+        "hidden-elements": path.resolve(__dirname, "hidden-elements.html"),
       },
       output: {
         entryFileNames: "assets/[name].js",

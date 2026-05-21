@@ -1,12 +1,13 @@
 (function () {
   "use strict";
 
-  const MESSAGE_SOURCE = "browser-tweaks-theme-sync";
+  const MESSAGE_SOURCE = "graft-theme-sync";
   const MESSAGE_TYPE = "BROWSER_TWEAKS_THEME";
 
   const DEFAULT_SETTINGS = {
     themeSyncerEnabled: true,
-    themeSyncerYoutubeEnabled: true
+    themeSyncerYoutubeEnabled: true,
+    themeSyncerBlockedDomains: []
   };
 
   const YOUTUBE_THEME_ATTRIBUTES = [
@@ -51,6 +52,22 @@
 
   function normalizeHost(hostname) {
     return hostname.replace(/^www\./, "").toLowerCase();
+  }
+
+  function normalizeBlockedDomains(raw) {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    return raw
+      .map((entry) => normalizeHost(String(entry || "")))
+      .filter(Boolean);
+  }
+
+  function isDomainBlocked() {
+    const host = normalizeHost(location.hostname);
+    const blocked = normalizeBlockedDomains(state.settings.themeSyncerBlockedDomains);
+    return blocked.includes(host);
   }
 
   function isYouTubeHost() {
@@ -323,7 +340,7 @@
   function applyTheme(isDark) {
     state.lastIsDark = isDark;
 
-    if (!state.settings.themeSyncerEnabled) {
+    if (!state.settings.themeSyncerEnabled || isDomainBlocked()) {
       clearGenericTheme();
       if (isYouTubeHost()) {
         clearYouTubeThemeState();
