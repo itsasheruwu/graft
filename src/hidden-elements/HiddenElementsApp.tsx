@@ -20,6 +20,7 @@ import {
   type HiddenElementRow,
 } from "@/lib/element-selector-hidden";
 import { cn } from "@/lib/utils";
+import { GraftBrand } from "@/components/brand/graft-brand";
 import { ArrowLeft, Download, MapPin, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -225,27 +226,23 @@ export function HiddenElementsApp() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Hidden elements
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Elements removed with Element Selector, grouped by site. Unhide to
-            show them again, or open a page to see where one was.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5"
-          onClick={openOptions}
-        >
-          <ArrowLeft className="size-3.5" />
-          All settings
-        </Button>
-      </div>
+      <GraftBrand
+        variant="page"
+        title="Hidden elements"
+        description="Elements removed with Element Selector, grouped by site. Unhide to show them again, or open a page to see where one was."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={openOptions}
+          >
+            <ArrowLeft className="size-3.5" />
+            All settings
+          </Button>
+        }
+      />
 
       <Card className="gap-0 border-border/80 shadow-sm">
         <CardHeader className="space-y-1 pb-3">

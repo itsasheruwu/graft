@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { TweakStatusDot } from "@/components/ui/tweak-status-dot";
+import { GraftBrand } from "@/components/brand/graft-brand";
 import { ThemeSyncerSettings } from "@/components/tweaks/theme-syncer-settings";
 import { ElementSelectorSettings } from "@/components/tweaks/element-selector-settings";
 import { YoutubeAutoTranslateSettings } from "@/components/tweaks/youtube-auto-translate-settings";
@@ -23,14 +24,10 @@ export function OptionsApp() {
 
   return (
     <main className="mx-auto max-w-lg space-y-6 px-6 py-10">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Graft
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Control how Graft tweaks behave across your browser.
-        </p>
-      </div>
+      <GraftBrand
+        variant="page"
+        description="Control how Graft tweaks behave across your browser."
+      />
 
       <Card className="gap-0 border-border/80 shadow-sm">
         <CardHeader className="space-y-1 pb-3">

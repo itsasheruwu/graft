@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { TweakStatusDot } from "@/components/ui/tweak-status-dot";
+import { GraftBrand } from "@/components/brand/graft-brand";
 import { ThemeSyncerSettings } from "@/components/tweaks/theme-syncer-settings";
 import { ElementSelectorSettings } from "@/components/tweaks/element-selector-settings";
 import { YoutubeAutoTranslateSettings } from "@/components/tweaks/youtube-auto-translate-settings";
@@ -24,22 +25,23 @@ export function PopupApp() {
 
   return (
     <div className="space-y-3">
-      <header className="flex items-center justify-between gap-2">
-        <h1 className="text-sm font-semibold tracking-tight text-foreground">
-          Graft
-        </h1>
-        <Button
-          type="button"
-          variant="link"
-          size="xs"
-          className="h-auto px-0 text-muted-foreground hover:text-foreground"
-          onClick={() => {
-            chrome.runtime.openOptionsPage();
-          }}
-        >
-          All settings
-        </Button>
-      </header>
+      <GraftBrand
+        variant="popup"
+        description="Quick tweak toggles"
+        actions={
+          <Button
+            type="button"
+            variant="link"
+            size="xs"
+            className="h-auto px-0 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              chrome.runtime.openOptionsPage();
+            }}
+          >
+            All settings
+          </Button>
+        }
+      />
 
       <Card className="gap-0 border-border/80 shadow-sm">
         <CardHeader className="space-y-1 pb-3">

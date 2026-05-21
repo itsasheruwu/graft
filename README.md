@@ -1,8 +1,21 @@
-# Graft
+<p align="center">
+  <img src=".github/brand/logo.png" alt="Graft logo" width="120" />
+</p>
 
-[![CI](https://github.com/itsasheruwu/graft/actions/workflows/ci.yml/badge.svg)](https://github.com/itsasheruwu/graft/actions/workflows/ci.yml)
+<h1 align="center">Graft</h1>
 
-A focused Chrome extension for grafting small fixes onto the web — one tweak at a time, with a clean settings UI and no bloat.
+<p align="center">
+  <strong>Small fixes, grafted onto the web.</strong><br />
+  <sub>A focused kit for grafting small fixes onto the web.</sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/itsasheruwu/graft/actions/workflows/ci.yml"><img src="https://github.com/itsasheruwu/graft/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+</p>
+
+<p align="center">
+  One tweak at a time — theme sync, element hiding, YouTube translation — with a clean settings UI and no bloat.
+</p>
 
 **Install from source:** clone, build, load `dist/` unpacked (see [Install](#install)).  
 There is no Chrome Web Store listing yet.
