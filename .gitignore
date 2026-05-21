@@ -1,2 +1,36 @@
+# Dependencies & build output
 /node_modules
 /dist
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor (Cursor hook/state)
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite / Vitest caches
+.vite/
+
+# TypeScript incremental
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# IDE (minimal)
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Extension signing keys (local only)
+*.pem
