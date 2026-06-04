@@ -8,8 +8,8 @@ import { useElementSelectorSettings } from "@/hooks/use-element-selector-setting
 
 type Variant = "popup" | "options";
 
-function openHiddenElementsPage() {
-  const url = chrome.runtime.getURL("hidden-elements.html");
+function openEditedListPage() {
+  const url = chrome.runtime.getURL("edited-list.html");
   chrome.tabs.create({ url });
 }
 
@@ -27,8 +27,8 @@ export function ElementSelectorSettings({ variant }: { variant: Variant }) {
         )}
       >
         {isPopup
-          ? "Turn on selector mode on the current page and click elements to hide or capture details."
-          : "Enable selector mode to choose DOM elements, copy context, and remove them from the current domain."}
+          ? "Turn on selector mode on the current page and click elements to hide, rewrite text, or capture details."
+          : "Enable selector mode to choose DOM elements, rewrite text, copy context, and remove them from the current domain."}
       </p>
 
       <div className="flex items-start justify-between gap-3">
@@ -68,6 +68,7 @@ export function ElementSelectorSettings({ variant }: { variant: Variant }) {
           )}
         >
           When enabled, the page cursor becomes a selector and hovered elements are outlined.
+          Text elements can be rewritten on the page; rewrites are session-only unless you choose to keep them after reload.
           Remove actions are stored per domain (locally on this device) so reloading keeps them hidden.
           Press {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Z to undo the last hide in this tab.
         </AlertDescription>
@@ -79,19 +80,19 @@ export function ElementSelectorSettings({ variant }: { variant: Variant }) {
           isPopup ? "p-3" : "p-4"
         )}
       >
-        <p className="text-sm font-medium text-foreground">Hidden elements</p>
+        <p className="text-sm font-medium text-foreground">Edited list</p>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Review everything you have removed, filter by site, preview on the live page, or unhide entries.
+          Review hidden elements and saved text rewrites, filter by site, preview on the live page, or remove entries.
         </p>
         <Button
           type="button"
           variant="secondary"
           size="sm"
           className="mt-3 gap-1.5"
-          onClick={openHiddenElementsPage}
+          onClick={openEditedListPage}
         >
           <List className="size-3.5" />
-          Open hide list
+          Open edited list
         </Button>
       </div>
 

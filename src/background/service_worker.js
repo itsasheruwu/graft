@@ -13,6 +13,7 @@ const SYNC_DEFAULT_SETTINGS = {
 
 const LOCAL_DEFAULT_SETTINGS = {
   elementSelectorRemovedElementsByDomain: {},
+  elementSelectorTextRewritesByDomain: {},
 };
 
 const REMOVALS_KEY = "elementSelectorRemovedElementsByDomain";

@@ -8,6 +8,7 @@
   const MESSAGE_OPEN_HIDDEN_LIST = "BTM_ELEMENT_SELECTOR_OPEN_HIDDEN_LIST";
   const MESSAGE_UNDO = "BTM_ELEMENT_SELECTOR_UNDO";
   const MESSAGE_UNDO_APPLIED = "BTM_ELEMENT_SELECTOR_UNDO_APPLIED";
+  const MESSAGE_REWRITE = "BTM_ELEMENT_SELECTOR_REWRITE";
 
   const CURSOR_CLASS = "btm-element-selector-mode";
   const STYLE_ID = "btm-element-selector-styles";
@@ -28,12 +29,14 @@
     activeSignature: null,
     lockedTarget: null,
     removals: [],
+    rewrites: [],
     initialized: false,
     overlayTargetRect: null,
     overlayCurrentRect: null,
     overlayRafId: null,
     locateSignature: null,
     locateRequestId: null,
+    locateKind: null,
   };
 
   let locateRetryTimer = null;
@@ -50,6 +53,10 @@
   let removalDebounceTimer = null;
   const REMOVAL_DOM_DEBOUNCE_MS = 450;
 
+  /** @type {Map<string, { signature: object, newText: string }>} */
+  const sessionRewrites = new Map();
+  let rewritePanelOpen = false;
+
   /** @type {HTMLDivElement|null} */
   let overlayRoot = null;
   /** @type {HTMLDivElement|null} */
@@ -64,6 +71,20 @@
   let removeButton = null;
   /** @type {HTMLButtonElement|null} */
   let copyButton = null;
+  /** @type {HTMLButtonElement|null} */
+  let rewriteButton = null;
+  /** @type {HTMLDivElement|null} */
+  let actionsRow = null;
+  /** @type {HTMLDivElement|null} */
+  let rewritePanel = null;
+  /** @type {HTMLTextAreaElement|null} */
+  let rewriteInput = null;
+  /** @type {HTMLInputElement|null} */
+  let rewritePersistCheckbox = null;
+  /** @type {HTMLButtonElement|null} */
+  let rewriteApplyButton = null;
+  /** @type {HTMLButtonElement|null} */
+  let rewriteCancelButton = null;
   /** @type {HTMLSpanElement|null} */
   let statusNode = null;
   /** @type {HTMLStyleElement|null} */
@@ -222,6 +243,185 @@
       left.id === right.id &&
       left.classes.join(",") === right.classes.join(",")
     );
+  }
+
+  function normalizeRewriteEntry(item) {
+    const signature = normalizeSignature(item);
+    if (!signature) {
+      return null;
+    }
+
+    return {
+      ...signature,
+      newText: typeof item.newText === "string" ? item.newText : "",
+    };
+  }
+
+  function normalizeRewrites(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+
+    const seen = new Set();
+    const output = [];
+
+    for (const item of list) {
+      const normalized = normalizeRewriteEntry(item);
+      if (!normalized) {
+        continue;
+      }
+      const key = signatureStableKey(normalized);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      output.push(normalized);
+    }
+
+    return output;
+  }
+
+  function canSafelyRewriteText(node) {
+    if (!node || !(node instanceof Element)) {
+      return false;
+    }
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "textarea") {
+      return true;
+    }
+    if (tag === "input") {
+      const type = (node.type || "text").toLowerCase();
+      return ["text", "search", "email", "url", "tel"].includes(type);
+    }
+    if (["script", "style", "noscript"].includes(tag)) {
+      return false;
+    }
+
+    const text = (node.textContent || "").trim();
+    if (!text) {
+      return false;
+    }
+
+    if (node.children.length === 0) {
+      return true;
+    }
+
+    if (node.children.length === 1) {
+      const child = node.children[0];
+      const inlineTags = new Set([
+        "span",
+        "a",
+        "strong",
+        "em",
+        "b",
+        "i",
+        "small",
+        "label",
+        "mark",
+        "sub",
+        "sup",
+        "code",
+      ]);
+      if (inlineTags.has(child.tagName.toLowerCase()) && child.children.length === 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function getElementEditableText(node) {
+    if (!node) {
+      return "";
+    }
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "textarea") {
+      return node.value || "";
+    }
+    if (tag === "input") {
+      return node.value || "";
+    }
+
+    return (node.textContent || "").trim();
+  }
+
+  function setElementText(node, text) {
+    if (!node) {
+      return;
+    }
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "textarea" || tag === "input") {
+      node.value = text;
+      node.dispatchEvent(new Event("input", { bubbles: true }));
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+
+    node.textContent = text;
+  }
+
+  function applyRewriteToElement(element, newText) {
+    if (!element || shouldSkipRemovalTarget(element)) {
+      return false;
+    }
+    setElementText(element, newText);
+    return true;
+  }
+
+  function getRewriteEntryForSignature(signature) {
+    if (!signature) {
+      return null;
+    }
+
+    const key = signatureStableKey(signature);
+    const sessionEntry = sessionRewrites.get(key);
+    if (sessionEntry) {
+      return sessionEntry;
+    }
+
+    return state.rewrites.find((entry) => signaturesMatch(entry, signature)) || null;
+  }
+
+  function applyPersistedRewrites(rewriteList) {
+    const useFullState = rewriteList === undefined;
+    const rawList = rewriteList ?? state.rewrites;
+    if (!Array.isArray(rawList) || rawList.length === 0) {
+      return;
+    }
+
+    const unique = normalizeRewrites(rawList);
+    if (useFullState) {
+      state.rewrites = unique;
+    }
+
+    for (const entry of unique) {
+      const key = signatureStableKey(entry);
+      if (sessionRewrites.has(key)) {
+        continue;
+      }
+
+      const element = findFirstMatchElement(entry);
+      if (element) {
+        applyRewriteToElement(element, entry.newText);
+      }
+    }
+  }
+
+  function applySessionRewrites() {
+    for (const entry of sessionRewrites.values()) {
+      const element = findFirstMatchElement(entry.signature);
+      if (element) {
+        applyRewriteToElement(element, entry.newText);
+      }
+    }
+  }
+
+  function applyAllRewritesFromState() {
+    applyPersistedRewrites();
+    applySessionRewrites();
   }
 
   function ensureBtmThemeTokens() {
@@ -411,6 +611,51 @@
         flex-wrap: wrap;
         gap: 8px;
       }
+      .btm-es-rewrite-panel {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .btm-es-rewrite-panel.is-open {
+        display: flex;
+      }
+      .btm-es-rewrite-input {
+        width: 100%;
+        min-height: 72px;
+        max-height: 160px;
+        resize: vertical;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        border-radius: calc(var(--btm-radius) * 0.7);
+        border: 1px solid var(--btm-border);
+        background: color-mix(in oklch, var(--btm-bg) 55%, transparent);
+        color: var(--btm-fg);
+        font: 12px/1.4 var(--btm-font);
+        outline: none;
+      }
+      .btm-es-rewrite-input:focus-visible {
+        border-color: color-mix(in oklch, var(--btm-ring) 65%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--btm-ring) 35%, transparent);
+      }
+      .btm-es-rewrite-persist {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--btm-muted-fg);
+        cursor: pointer;
+        user-select: none;
+      }
+      .btm-es-rewrite-persist input {
+        margin: 0;
+        accent-color: var(--btm-primary);
+      }
+      .btm-es-rewrite-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
     `;
     document.documentElement.appendChild(styleNode);
 
@@ -457,6 +702,7 @@
 
     const actions = document.createElement("div");
     actions.className = "btm-es-actions";
+    actionsRow = actions;
 
     removeButton = document.createElement("button");
     removeButton.type = "button";
@@ -468,20 +714,67 @@
     copyButton.className = "btm-es-btn btm-es-btn--primary";
     copyButton.textContent = "Copy";
 
+    rewriteButton = document.createElement("button");
+    rewriteButton.type = "button";
+    rewriteButton.className = "btm-es-btn btm-es-btn--outline";
+    rewriteButton.textContent = "Rewrite";
+    rewriteButton.style.display = "none";
+
+    actions.appendChild(removeButton);
+    actions.appendChild(copyButton);
+    actions.appendChild(rewriteButton);
+
+    rewritePanel = document.createElement("div");
+    rewritePanel.className = "btm-es-rewrite-panel";
+
+    rewriteInput = document.createElement("textarea");
+    rewriteInput.className = "btm-es-rewrite-input";
+    rewriteInput.setAttribute("aria-label", "Rewritten text");
+    rewriteInput.placeholder = "Enter new text…";
+
+    const persistLabel = document.createElement("label");
+    persistLabel.className = "btm-es-rewrite-persist";
+    rewritePersistCheckbox = document.createElement("input");
+    rewritePersistCheckbox.type = "checkbox";
+    rewritePersistCheckbox.checked = false;
+    persistLabel.appendChild(rewritePersistCheckbox);
+    persistLabel.appendChild(document.createTextNode("Keep after reload"));
+
+    const rewriteActions = document.createElement("div");
+    rewriteActions.className = "btm-es-rewrite-actions";
+
+    rewriteApplyButton = document.createElement("button");
+    rewriteApplyButton.type = "button";
+    rewriteApplyButton.className = "btm-es-btn btm-es-btn--primary";
+    rewriteApplyButton.textContent = "Apply";
+
+    rewriteCancelButton = document.createElement("button");
+    rewriteCancelButton.type = "button";
+    rewriteCancelButton.className = "btm-es-btn btm-es-btn--outline";
+    rewriteCancelButton.textContent = "Cancel";
+
+    rewriteActions.appendChild(rewriteApplyButton);
+    rewriteActions.appendChild(rewriteCancelButton);
+    rewritePanel.appendChild(rewriteInput);
+    rewritePanel.appendChild(persistLabel);
+    rewritePanel.appendChild(rewriteActions);
+
     statusNode = document.createElement("span");
     statusNode.className = "btm-es-control-meta";
     statusNode.textContent = "";
 
-    actions.appendChild(removeButton);
-    actions.appendChild(copyButton);
     content.appendChild(controlHead);
     content.appendChild(actions);
+    content.appendChild(rewritePanel);
     content.appendChild(statusNode);
     controlRoot.appendChild(content);
 
     unlockButton.addEventListener("click", onUnlockSelection);
     removeButton.addEventListener("click", onRemoveSelected);
     copyButton.addEventListener("click", onCopySelected);
+    rewriteButton.addEventListener("click", onOpenRewritePanel);
+    rewriteApplyButton.addEventListener("click", onApplyRewrite);
+    rewriteCancelButton.addEventListener("click", onCloseRewritePanel);
   }
 
   function mountRoots() {
@@ -517,6 +810,7 @@
     state.activeElement = null;
     state.activeSignature = null;
     state.lockedTarget = null;
+    closeRewritePanel();
     syncUnlockButtonVisibility();
   }
 
@@ -760,7 +1054,11 @@
   }
 
   function scheduleRemovalDomReapply() {
-    if (!state.removals || state.removals.length === 0) {
+    if (
+      (!state.removals || state.removals.length === 0) &&
+      (!state.rewrites || state.rewrites.length === 0) &&
+      sessionRewrites.size === 0
+    ) {
       return;
     }
     if (removalDebounceTimer != null) {
@@ -768,15 +1066,24 @@
     }
     removalDebounceTimer = window.setTimeout(() => {
       removalDebounceTimer = null;
-      if (!state.removals || state.removals.length === 0) {
-        return;
+      if (state.removals && state.removals.length > 0) {
+        applyPersistedRemovalsFromState();
       }
-      applyPersistedRemovalsFromState();
+      if (
+        (state.rewrites && state.rewrites.length > 0) ||
+        sessionRewrites.size > 0
+      ) {
+        applyAllRewritesFromState();
+      }
     }, REMOVAL_DOM_DEBOUNCE_MS);
   }
 
   function syncRemovalDomObserver() {
-    if (!state.removals || state.removals.length === 0) {
+    if (
+      (!state.removals || state.removals.length === 0) &&
+      (!state.rewrites || state.rewrites.length === 0) &&
+      sessionRewrites.size === 0
+    ) {
       teardownRemovalDomObserver();
       return;
     }
@@ -972,12 +1279,15 @@
     panel.className = "btm-locate-panel";
     const label = document.createElement("span");
     label.className = "btm-locate-label";
-    label.textContent = "Hidden element preview";
+    const isRewriteLocate = state.locateKind === "rewrite";
+    label.textContent = isRewriteLocate
+      ? "Edited text preview"
+      : "Hidden element preview";
 
     const backBtn = document.createElement("button");
     backBtn.type = "button";
     backBtn.className = "btm-es-btn btm-es-btn--outline";
-    backBtn.textContent = "Back to hide list";
+    backBtn.textContent = "Back to edited list";
     backBtn.addEventListener("click", () => {
       window.postMessage(
         {
@@ -1280,6 +1590,132 @@
     clearHighlight();
   }
 
+  function syncRewriteButtonVisibility() {
+    if (!rewriteButton) {
+      return;
+    }
+
+    const show =
+      !!state.activeElement &&
+      canSafelyRewriteText(state.activeElement) &&
+      !rewritePanelOpen;
+    rewriteButton.style.display = show ? "inline-flex" : "none";
+  }
+
+  function closeRewritePanel() {
+    rewritePanelOpen = false;
+    if (rewritePanel) {
+      rewritePanel.classList.remove("is-open");
+    }
+    if (actionsRow) {
+      actionsRow.style.display = "flex";
+    }
+    if (rewriteInput) {
+      rewriteInput.value = "";
+    }
+    if (rewritePersistCheckbox) {
+      rewritePersistCheckbox.checked = false;
+    }
+    syncRewriteButtonVisibility();
+  }
+
+  function onOpenRewritePanel(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!state.activeElement || !state.activeSignature) {
+      return;
+    }
+    if (!canSafelyRewriteText(state.activeElement)) {
+      return;
+    }
+
+    rewritePanelOpen = true;
+    if (rewritePanel) {
+      rewritePanel.classList.add("is-open");
+    }
+    if (actionsRow) {
+      actionsRow.style.display = "none";
+    }
+    if (rewriteInput) {
+      rewriteInput.value = getElementEditableText(state.activeElement);
+      rewriteInput.focus();
+      rewriteInput.select();
+    }
+    if (rewritePersistCheckbox) {
+      const existing = getRewriteEntryForSignature(state.activeSignature);
+      rewritePersistCheckbox.checked = Boolean(
+        existing &&
+          state.rewrites.some((entry) => signaturesMatch(entry, state.activeSignature))
+      );
+    }
+    syncRewriteButtonVisibility();
+    setStatus("");
+  }
+
+  function onCloseRewritePanel(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    closeRewritePanel();
+    setStatus("");
+  }
+
+  function onApplyRewrite(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!state.activeElement || !state.activeSignature || !rewriteInput) {
+      return;
+    }
+
+    const newText = rewriteInput.value;
+    const signature = buildSignature(state.activeElement);
+    const persist = Boolean(rewritePersistCheckbox?.checked);
+    const applied = applyRewriteToElement(state.activeElement, newText);
+
+    if (!applied) {
+      setStatus("Could not rewrite that element.", true);
+      return;
+    }
+
+    const key = signatureStableKey(signature);
+    if (persist) {
+      sessionRewrites.delete(key);
+      notifyBridgeForRewrite(signature, newText);
+      setStatus("Text rewritten and saved for this site.");
+    } else {
+      sessionRewrites.set(key, { signature: { ...signature }, newText });
+      syncRemovalDomObserver();
+      setStatus("Text rewritten for this visit.");
+    }
+
+    closeRewritePanel();
+    setTimeout(() => setStatus(""), 1600);
+  }
+
+  function notifyBridgeForRewrite(signature, newText) {
+    window.postMessage(
+      {
+        source: MESSAGE_SOURCE,
+        type: MESSAGE_REWRITE,
+        persist: true,
+        payload: {
+          selectorPath: signature.selectorPath,
+          primarySelector: signature.primarySelector,
+          tagName: signature.tagName,
+          id: signature.id,
+          classes: signature.classes,
+          sourceUrl: signature.sourceUrl,
+          newText,
+        },
+        domain: state.domain,
+      },
+      "*"
+    );
+  }
+
   function setPanelForNode(signature) {
     if (!controlRoot || !controlTitle || !statusNode) {
       return;
@@ -1295,6 +1731,8 @@
     setStatus("");
     removeButton && (removeButton.disabled = false);
     copyButton && (copyButton.disabled = false);
+    closeRewritePanel();
+    syncRewriteButtonVisibility();
   }
 
   function markActive(node) {
@@ -1574,6 +2012,11 @@
       return;
     }
     if (event.key === "Escape") {
+      if (rewritePanelOpen) {
+        onCloseRewritePanel();
+        event.preventDefault();
+        return;
+      }
       state.lockedTarget = null;
       clearHighlight();
       event.preventDefault();
@@ -1600,6 +2043,8 @@
     mountRoots();
     document.documentElement.classList.add(CURSOR_CLASS);
     applyPersistedRemovalsFromState();
+    applyAllRewritesFromState();
+    syncRemovalDomObserver();
 
     document.addEventListener("mousemove", handlePointerMove, true);
     document.addEventListener("click", handleClickCapture, true);
@@ -1631,15 +2076,23 @@
   function applyBridgeUpdate(data) {
     const enabled = Boolean(data.elementSelectorEnabled);
     const removals = normalizeSignatures(data.removals || []);
+    const rewrites = normalizeRewrites(data.rewrites || []);
     const locateSig = data.locateSignature ? normalizeSignature(data.locateSignature) : null;
     const locateRid = typeof data.locateRequestId === "string" ? data.locateRequestId : null;
+    const locateKind =
+      data.locateKind === "rewrite" || data.locateKind === "hidden"
+        ? data.locateKind
+        : null;
 
     state.domain = normalizeDomain(data.domain || state.domain);
     state.removals = removals;
+    state.rewrites = rewrites;
     state.locateSignature = locateSig;
     state.locateRequestId = locateRid;
+    state.locateKind = locateKind;
 
     applyPersistedRemovalsFromState();
+    applyAllRewritesFromState();
     syncRemovalDomObserver();
 
     if (locateSig && locateRid) {
@@ -1698,6 +2151,7 @@
   });
   document.addEventListener("DOMContentLoaded", () => {
     applyPersistedRemovalsFromState();
+    applyAllRewritesFromState();
     syncRemovalDomObserver();
     if (state.locateSignature && state.locateRequestId) {
       startLocatePreviewIfNeeded();

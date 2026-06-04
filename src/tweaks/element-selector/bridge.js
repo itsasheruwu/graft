@@ -7,9 +7,11 @@
   const MESSAGE_UNDO = "BTM_ELEMENT_SELECTOR_UNDO";
   const MESSAGE_CLEAR_LOCATE = "BTM_ELEMENT_SELECTOR_CLEAR_LOCATE";
   const MESSAGE_OPEN_HIDDEN_LIST = "BTM_ELEMENT_SELECTOR_OPEN_HIDDEN_LIST";
+  const MESSAGE_REWRITE = "BTM_ELEMENT_SELECTOR_REWRITE";
 
   const STORAGE_LOCATE = "elementSelectorLocateRequest";
   const REMOVALS_KEY = "elementSelectorRemovedElementsByDomain";
+  const REWRITES_KEY = "elementSelectorTextRewritesByDomain";
 
   const SYNC_DEFAULTS = {
     elementSelectorEnabled: false,
@@ -17,11 +19,13 @@
 
   const LOCAL_DEFAULTS = {
     [REMOVALS_KEY]: {},
+    [REWRITES_KEY]: {},
   };
 
   const STATE_FIELDS = {
     enabled: "elementSelectorEnabled",
     removals: REMOVALS_KEY,
+    rewrites: REWRITES_KEY,
   };
 
   function normalizeDomain(domain) {
@@ -103,6 +107,52 @@
     return normalizedMap[normalizedDomain] || [];
   }
 
+  function normalizeRewriteEntry(entry) {
+    const signature = normalizeSelectionSignature(entry);
+    if (!signature) {
+      return null;
+    }
+
+    return {
+      ...signature,
+      newText: typeof entry.newText === "string" ? entry.newText : "",
+    };
+  }
+
+  function normalizeRewriteMap(raw) {
+    const output = {};
+
+    if (!raw || typeof raw !== "object") {
+      return output;
+    }
+
+    for (const key of Object.keys(raw)) {
+      const normalizedDomain = normalizeDomain(key);
+      const list = raw[key];
+
+      if (!Array.isArray(list)) {
+        continue;
+      }
+
+      const cleaned = [];
+      for (const entry of list) {
+        const normalized = normalizeRewriteEntry(entry);
+        if (normalized) {
+          cleaned.push(normalized);
+        }
+      }
+      output[normalizedDomain] = cleaned;
+    }
+
+    return output;
+  }
+
+  function getDomainRewrites(rawMap, domain) {
+    const normalizedDomain = normalizeDomain(domain);
+    const normalizedMap = normalizeRewriteMap(rawMap);
+    return normalizedMap[normalizedDomain] || [];
+  }
+
   function pickLocateForPage(locate, pageDomain) {
     if (!locate || typeof locate !== "object") {
       return null;
@@ -122,10 +172,13 @@
       return null;
     }
 
+    const kind = locate.kind === "rewrite" ? "rewrite" : "hidden";
+
     return {
       signature,
       requestId: typeof locate.requestId === "string" ? locate.requestId : "",
-      sourceUrl: typeof locate.sourceUrl === "string" ? locate.sourceUrl : ""
+      sourceUrl: typeof locate.sourceUrl === "string" ? locate.sourceUrl : "",
+      kind,
     };
   }
 
@@ -140,6 +193,7 @@
     };
     const normalizedDomain = normalizeDomain();
     const removals = getDomainRemovals(removalsMap[REMOVALS_KEY], normalizedDomain);
+    const rewrites = getDomainRewrites(removalsMap[REWRITES_KEY], normalizedDomain);
 
     window.postMessage(
       {
@@ -147,9 +201,11 @@
         type: MESSAGE_STATE,
         elementSelectorEnabled: Boolean(settings.elementSelectorEnabled),
         removals,
+        rewrites,
         domain: normalizedDomain,
         locateSignature: locatePayload ? locatePayload.signature : null,
-        locateRequestId: locatePayload ? locatePayload.requestId : null
+        locateRequestId: locatePayload ? locatePayload.requestId : null,
+        locateKind: locatePayload ? locatePayload.kind : null,
       },
       "*"
     );
@@ -192,7 +248,7 @@
     if (!chrome.runtime?.getURL || !chrome.tabs?.query) {
       return;
     }
-    const targetUrl = chrome.runtime.getURL("hidden-elements.html");
+    const targetUrl = chrome.runtime.getURL("edited-list.html");
     chrome.tabs.query({}, (tabs) => {
       const found = tabs.find((t) => t.url === targetUrl);
       if (found?.id != null) {
@@ -250,6 +306,52 @@
       if (typeof callback === "function") {
         callback();
       }
+    });
+  }
+
+  function upsertRewrite(storageMap, domain, payload) {
+    const normalizedDomain = normalizeDomain(domain);
+    const existing = storageMap[normalizedDomain] || [];
+    const filtered = existing.filter((entry) => !signaturesMatch(entry, payload));
+    const withTimestamp = {
+      ...payload,
+      rewrittenAt: new Date().toISOString(),
+    };
+
+    return {
+      ...storageMap,
+      [normalizedDomain]: [...filtered, withTimestamp],
+    };
+  }
+
+  function persistRewrites(nextMap, callback) {
+    chrome.storage.local.set({ [REWRITES_KEY]: nextMap }, () => {
+      if (chrome.runtime.lastError) {
+        return;
+      }
+      sendState();
+      if (typeof callback === "function") {
+        callback();
+      }
+    });
+  }
+
+  function handleRewriteMessage(message) {
+    const payload = normalizeRewriteEntry(message.payload);
+    if (!payload || !message.persist) {
+      return;
+    }
+
+    if (!chrome.storage?.local) {
+      return;
+    }
+
+    const domain = normalizeDomain();
+
+    chrome.storage.local.get(LOCAL_DEFAULTS, (localStored) => {
+      const normalizedMap = normalizeRewriteMap(localStored[REWRITES_KEY]);
+      const nextMap = upsertRewrite(normalizedMap, domain, payload);
+      persistRewrites(nextMap);
     });
   }
 
@@ -315,6 +417,11 @@
       return;
     }
 
+    if (data.type === MESSAGE_REWRITE) {
+      handleRewriteMessage(data);
+      return;
+    }
+
     if (data.type === MESSAGE_UNDO) {
       handleUndoMessage();
       return;
@@ -339,7 +446,7 @@
       }
       if (
         area === "local" &&
-        (REMOVALS_KEY in changes || STORAGE_LOCATE in changes)
+        (REMOVALS_KEY in changes || REWRITES_KEY in changes || STORAGE_LOCATE in changes)
       ) {
         sendState();
       }

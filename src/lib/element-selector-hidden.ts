@@ -78,3 +78,63 @@ export function flattenHiddenMap(
 export function rowKey(row: HiddenElementRow): string {
   return `${row.domain}|${row.removedAt ?? ""}|${row.primarySelector}|${row.selectorPath}|${row.tagName}|${row.id}`;
 }
+
+export type EditedTextSignature = HiddenElementSignature & {
+  newText: string;
+  rewrittenAt?: string;
+};
+
+export type EditedTextRow = EditedTextSignature & {
+  domain: string;
+};
+
+export function flattenRewriteMap(
+  raw: Record<string, EditedTextSignature[] | unknown> | undefined
+): EditedTextRow[] {
+  if (!raw || typeof raw !== "object") {
+    return [];
+  }
+
+  const rows: EditedTextRow[] = [];
+
+  for (const key of Object.keys(raw)) {
+    const domain = normalizeDomainKey(key);
+    const list = raw[key];
+    if (!Array.isArray(list)) {
+      continue;
+    }
+    for (const entry of list) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const e = entry as Partial<EditedTextSignature>;
+      if (!e.tagName && !e.primarySelector && !e.selectorPath) {
+        continue;
+      }
+      if (typeof e.newText !== "string") {
+        continue;
+      }
+      rows.push({
+        domain,
+        selectorPath: typeof e.selectorPath === "string" ? e.selectorPath : "",
+        primarySelector:
+          typeof e.primarySelector === "string" ? e.primarySelector : "",
+        tagName: typeof e.tagName === "string" ? e.tagName.toLowerCase() : "",
+        id: typeof e.id === "string" ? e.id : "",
+        classes: Array.isArray(e.classes)
+          ? e.classes.filter(Boolean).map(String)
+          : [],
+        rewrittenAt:
+          typeof e.rewrittenAt === "string" ? e.rewrittenAt : undefined,
+        sourceUrl: typeof e.sourceUrl === "string" ? e.sourceUrl : undefined,
+        newText: e.newText,
+      });
+    }
+  }
+
+  return rows;
+}
+
+export function editedTextRowKey(row: EditedTextRow): string {
+  return `${row.domain}|${row.rewrittenAt ?? ""}|${row.newText}|${row.primarySelector}|${row.selectorPath}|${row.tagName}|${row.id}`;
+}
