@@ -46,8 +46,14 @@ function AccordionTrigger({
         {...props}
       >
         {children}
-        <ChevronDownIcon data-slot="accordion-trigger-icon" className="pointer-events-none shrink-0 group-aria-expanded/accordion-trigger:hidden" />
-        <ChevronUpIcon data-slot="accordion-trigger-icon" className="pointer-events-none hidden shrink-0 group-aria-expanded/accordion-trigger:inline" />
+        <span
+          className="t-icon-swap pointer-events-none shrink-0"
+          data-slot="accordion-trigger-icon"
+          data-state="a"
+        >
+          <ChevronDownIcon className="t-icon" data-icon="a" />
+          <ChevronUpIcon className="t-icon" data-icon="b" />
+        </span>
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   )
@@ -61,7 +67,7 @@ function AccordionContent({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="overflow-hidden text-sm data-open:animate-accordion-down data-closed:animate-accordion-up"
+      className="t-resize overflow-hidden text-sm data-open:animate-accordion-down data-closed:animate-accordion-up"
       {...props}
     >
       <div

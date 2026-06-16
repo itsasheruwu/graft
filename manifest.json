@@ -11,7 +11,8 @@
     "https://m.youtube.com/*",
     "https://music.youtube.com/*",
     "https://*.youtube.com/*",
-    "https://translate.googleapis.com/*"
+    "https://translate.googleapis.com/*",
+    "http://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "src/background/service_worker.js"

@@ -94,6 +94,7 @@ export default defineConfig({
         popup: path.resolve(__dirname, "popup.html"),
         options: path.resolve(__dirname, "options.html"),
         "edited-list": path.resolve(__dirname, "edited-list.html"),
+        gallery: path.resolve(__dirname, "gallery.html"),
       },
       output: {
         entryFileNames: "assets/[name].js",

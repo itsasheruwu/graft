@@ -9,6 +9,11 @@ import {
 import { useYoutubeAutoTranslateSettings } from "@/hooks/use-youtube-auto-translate-settings";
 import { cn } from "@/lib/utils";
 import { Activity, Languages, Shield } from "lucide-react";
+import {
+  AnimatedStatusText,
+  AnimatedText,
+  SlidingSegmentedControl,
+} from "@/components/ui/transition-effects";
 
 type Variant = "popup" | "options";
 
@@ -152,33 +157,23 @@ export function YoutubeAutoTranslateSettings({
         <p className={cn(isPopup ? "text-xs font-medium" : "text-sm font-medium")}>
           Target language
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={targetMode === "auto" ? "default" : "outline"}
-            disabled={childrenDisabled}
-            onClick={() => setTargetMode("auto")}
-          >
-            Auto (browser)
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={targetMode === "fixed" ? "default" : "outline"}
-            disabled={childrenDisabled}
-            onClick={() => setTargetMode("fixed")}
-          >
-            Fixed
-          </Button>
-        </div>
-        {targetMode === "fixed" ? (
+        <SlidingSegmentedControl
+          value={targetMode}
+          onChange={setTargetMode}
+          disabled={childrenDisabled}
+          options={[
+            { value: "auto", label: "Auto (browser)" },
+            { value: "fixed", label: "Fixed" },
+          ]}
+        />
+        <div className="overflow-hidden">
           <select
             className={cn(
-              "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm",
+              "t-panel-slide flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               childrenDisabled && "opacity-60"
             )}
+            data-open={targetMode === "fixed" ? "true" : "false"}
             value={targetLanguage}
             disabled={childrenDisabled}
             onChange={(e) => setTargetLanguage(e.target.value)}
@@ -189,11 +184,10 @@ export function YoutubeAutoTranslateSettings({
               </option>
             ))}
           </select>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Follows your browser UI language.
-          </p>
-        )}
+        </div>
+        {targetMode === "auto" ? (
+          <p className="text-xs text-muted-foreground">Follows your browser UI language.</p>
+        ) : null}
       </div>
 
       <YoutubeAutoTranslateLiveStatusPanel
@@ -286,16 +280,11 @@ export function YoutubeAutoTranslateSettings({
         </AlertDescription>
       </Alert>
 
-      <p
-        className={cn(
-          "min-h-[1rem]",
-          isPopup ? "text-xs" : "text-sm",
-          status?.isError ? "text-destructive" : "text-primary"
-        )}
-        aria-live="polite"
-      >
-        {status?.message ?? ""}
-      </p>
+      <AnimatedStatusText
+        message={status?.message}
+        isError={status?.isError}
+        className={isPopup ? "text-xs" : "text-sm"}
+      />
     </div>
   );
 }
@@ -333,7 +322,7 @@ function YoutubeAutoTranslateLiveStatusPanel({
               className="min-w-0 truncate text-right text-foreground"
               title={row.value}
             >
-              {row.value}
+              <AnimatedText text={row.value} />
             </dd>
           </div>
         ))}

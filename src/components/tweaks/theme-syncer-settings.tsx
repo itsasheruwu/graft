@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useThemeSyncerSettings } from "@/hooks/use-theme-syncer-settings";
 import { AlertTriangle, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedStatusText } from "@/components/ui/transition-effects";
 
 type Variant = "popup" | "options";
 
@@ -146,11 +147,12 @@ export function ThemeSyncerSettings({ variant }: { variant: Variant }) {
           </Button>
         </div>
         {themeSyncerBlockedDomains.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {themeSyncerBlockedDomains.map((domain) => (
+          <ul className="t-stagger is-shown flex flex-wrap gap-2">
+            {themeSyncerBlockedDomains.map((domain, index) => (
               <li
                 key={domain}
-                className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2 py-1 text-xs"
+                className="t-stagger-line inline-flex items-center gap-1 rounded-md border border-border/80 bg-background px-2 py-1 text-xs"
+                style={{ transitionDelay: `calc(var(--stagger-stagger) * ${index})` }}
               >
                 {domain}
                 <button
@@ -169,16 +171,11 @@ export function ThemeSyncerSettings({ variant }: { variant: Variant }) {
         )}
       </div>
 
-      <p
-        className={cn(
-          "min-h-[1rem]",
-          isPopup ? "text-xs" : "text-sm",
-          status?.isError ? "text-destructive" : "text-primary"
-        )}
-        aria-live="polite"
-      >
-        {status?.message ?? ""}
-      </p>
+      <AnimatedStatusText
+        message={status?.message}
+        isError={status?.isError}
+        className={isPopup ? "text-xs" : "text-sm"}
+      />
     </div>
   );
 }

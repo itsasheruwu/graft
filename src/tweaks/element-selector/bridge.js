@@ -8,10 +8,14 @@
   const MESSAGE_CLEAR_LOCATE = "BTM_ELEMENT_SELECTOR_CLEAR_LOCATE";
   const MESSAGE_OPEN_HIDDEN_LIST = "BTM_ELEMENT_SELECTOR_OPEN_HIDDEN_LIST";
   const MESSAGE_REWRITE = "BTM_ELEMENT_SELECTOR_REWRITE";
+  const MESSAGE_AI_GENERATE = "BTM_GRAFT_AI_GENERATE";
+  const MESSAGE_AI_RESULT = "BTM_GRAFT_AI_RESULT";
+  const MESSAGE_AI_SAVE_RECIPE = "BTM_GRAFT_AI_SAVE_RECIPE";
 
   const STORAGE_LOCATE = "elementSelectorLocateRequest";
   const REMOVALS_KEY = "elementSelectorRemovedElementsByDomain";
   const REWRITES_KEY = "elementSelectorTextRewritesByDomain";
+  const AI_RECIPES_KEY = "graftAiRecipesByDomain";
 
   const SYNC_DEFAULTS = {
     elementSelectorEnabled: false,
@@ -20,12 +24,14 @@
   const LOCAL_DEFAULTS = {
     [REMOVALS_KEY]: {},
     [REWRITES_KEY]: {},
+    [AI_RECIPES_KEY]: {},
   };
 
   const STATE_FIELDS = {
     enabled: "elementSelectorEnabled",
     removals: REMOVALS_KEY,
     rewrites: REWRITES_KEY,
+    recipes: AI_RECIPES_KEY,
   };
 
   function normalizeDomain(domain) {
@@ -147,6 +153,114 @@
     return output;
   }
 
+  function normalizeRecipeAction(action) {
+    if (!action || typeof action !== "object") {
+      return null;
+    }
+    const type = action.type;
+    const target = normalizeSelectionSignature(action.target);
+    const reason = typeof action.reason === "string" ? action.reason.slice(0, 220) : "";
+    if (!target || !reason) {
+      return null;
+    }
+    const base = {
+      id: typeof action.id === "string" ? action.id.slice(0, 120) : "",
+      type,
+      target,
+      reason,
+    };
+    if (type === "hide") {
+      return base;
+    }
+    if (type === "textRewrite" && typeof action.newText === "string") {
+      return { ...base, newText: action.newText.slice(0, 5000) };
+    }
+    if (type === "style" && action.styles && typeof action.styles === "object") {
+      return { ...base, styles: action.styles };
+    }
+    if (type === "move") {
+      const anchor = normalizeSelectionSignature(action.anchor);
+      const position = typeof action.position === "string" ? action.position : "";
+      if (!anchor || !["before", "after", "start", "end"].includes(position)) {
+        return null;
+      }
+      return { ...base, anchor, position };
+    }
+    if (type === "shortcut") {
+      const combo = typeof action.combo === "string" ? action.combo.slice(0, 80) : "";
+      const behavior =
+        typeof action.behavior === "string" ? action.behavior.slice(0, 80) : "";
+      if (!combo || !["click", "focus", "toggleHidden", "hide"].includes(behavior)) {
+        return null;
+      }
+      return { ...base, combo, behavior };
+    }
+    return null;
+  }
+
+  function normalizeRecipe(entry, domainFallback) {
+    if (!entry || typeof entry !== "object") {
+      return null;
+    }
+    const actions = Array.isArray(entry.actions)
+      ? entry.actions.map(normalizeRecipeAction).filter(Boolean).slice(0, 40)
+      : [];
+    if (actions.length === 0) {
+      return null;
+    }
+    const domain = normalizeDomain(entry.domain || domainFallback || "");
+    if (!domain) {
+      return null;
+    }
+    return {
+      id:
+        typeof entry.id === "string" && entry.id
+          ? entry.id.slice(0, 120)
+          : `graft-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      version: 1,
+      domain,
+      prompt: typeof entry.prompt === "string" ? entry.prompt.slice(0, 2000) : "",
+      summary:
+        typeof entry.summary === "string" && entry.summary.trim()
+          ? entry.summary.slice(0, 500)
+          : "AI rewrite",
+      actions,
+      createdAt:
+        typeof entry.createdAt === "string" && entry.createdAt
+          ? entry.createdAt.slice(0, 80)
+          : new Date().toISOString(),
+      sourceUrl: typeof entry.sourceUrl === "string" ? entry.sourceUrl.slice(0, 1000) : "",
+      enabled: entry.enabled === false ? false : true,
+    };
+  }
+
+  function normalizeRecipeMap(raw) {
+    const output = {};
+    if (!raw || typeof raw !== "object") {
+      return output;
+    }
+    for (const key of Object.keys(raw)) {
+      const domain = normalizeDomain(key);
+      const list = raw[key];
+      if (!Array.isArray(list)) {
+        continue;
+      }
+      const recipes = list
+        .map((entry) => normalizeRecipe(entry, domain))
+        .filter(Boolean);
+      if (recipes.length > 0) {
+        output[domain] = recipes;
+      }
+    }
+    return output;
+  }
+
+  function getDomainRecipes(rawMap, domain) {
+    const normalizedDomain = normalizeDomain(domain);
+    const normalizedMap = normalizeRecipeMap(rawMap);
+    return normalizedMap[normalizedDomain] || [];
+  }
+
   function getDomainRewrites(rawMap, domain) {
     const normalizedDomain = normalizeDomain(domain);
     const normalizedMap = normalizeRewriteMap(rawMap);
@@ -194,6 +308,7 @@
     const normalizedDomain = normalizeDomain();
     const removals = getDomainRemovals(removalsMap[REMOVALS_KEY], normalizedDomain);
     const rewrites = getDomainRewrites(removalsMap[REWRITES_KEY], normalizedDomain);
+    const recipes = getDomainRecipes(removalsMap[AI_RECIPES_KEY], normalizedDomain);
 
     window.postMessage(
       {
@@ -202,6 +317,7 @@
         elementSelectorEnabled: Boolean(settings.elementSelectorEnabled),
         removals,
         rewrites,
+        aiRecipes: recipes,
         domain: normalizedDomain,
         locateSignature: locatePayload ? locatePayload.signature : null,
         locateRequestId: locatePayload ? locatePayload.requestId : null,
@@ -355,6 +471,56 @@
     });
   }
 
+  function handleAiGenerateMessage(message) {
+    const requestId =
+      typeof message.requestId === "string" ? message.requestId : String(Date.now());
+    chrome.runtime.sendMessage(
+      {
+        type: "graft-ai-rewriter:generate",
+        prompt: message.prompt,
+        context: message.context,
+      },
+      (response) => {
+        window.postMessage(
+          {
+            source: MESSAGE_SOURCE,
+            type: MESSAGE_AI_RESULT,
+            requestId,
+            response:
+              chrome.runtime.lastError
+                ? {
+                    ok: false,
+                    error: chrome.runtime.lastError.message || "AI helper failed.",
+                  }
+                : response,
+          },
+          "*"
+        );
+      }
+    );
+  }
+
+  function handleAiSaveRecipeMessage(message) {
+    const recipe = normalizeRecipe(message.recipe, normalizeDomain());
+    if (!recipe || !chrome.storage?.local) {
+      return;
+    }
+    const domain = normalizeDomain(recipe.domain);
+    chrome.storage.local.get(LOCAL_DEFAULTS, (localStored) => {
+      const normalizedMap = normalizeRecipeMap(localStored[AI_RECIPES_KEY]);
+      const existing = normalizedMap[domain] || [];
+      const nextMap = {
+        ...normalizedMap,
+        [domain]: [...existing.filter((item) => item.id !== recipe.id), recipe],
+      };
+      chrome.storage.local.set({ [AI_RECIPES_KEY]: nextMap }, () => {
+        if (!chrome.runtime.lastError) {
+          sendState();
+        }
+      });
+    });
+  }
+
   function handleRemoveMessage(message) {
     const payload = normalizeSelectionSignature(message.payload);
     if (!payload) {
@@ -422,6 +588,16 @@
       return;
     }
 
+    if (data.type === MESSAGE_AI_GENERATE) {
+      handleAiGenerateMessage(data);
+      return;
+    }
+
+    if (data.type === MESSAGE_AI_SAVE_RECIPE) {
+      handleAiSaveRecipeMessage(data);
+      return;
+    }
+
     if (data.type === MESSAGE_UNDO) {
       handleUndoMessage();
       return;
@@ -446,7 +622,10 @@
       }
       if (
         area === "local" &&
-        (REMOVALS_KEY in changes || REWRITES_KEY in changes || STORAGE_LOCATE in changes)
+        (REMOVALS_KEY in changes ||
+          REWRITES_KEY in changes ||
+          AI_RECIPES_KEY in changes ||
+          STORAGE_LOCATE in changes)
       ) {
         sendState();
       }

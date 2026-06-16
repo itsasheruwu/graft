@@ -32,12 +32,19 @@ const TWEAK_REGISTRY = Object.freeze({
       themeSyncerEnabled: true,
       themeSyncerYoutubeEnabled: true,
       themeSyncerBlockedDomains: [],
+      forceDarkModeEnabled: false,
+      forceDarkModeBlockedDomains: [],
+      soundBoosterEnabled: false,
+      soundBoosterGain: 1.5,
+      soundBoosterBlockedDomains: [],
       youtubeAutoTranslateEnabled: true,
       youtubeAutoTranslateTitlesEnabled: true,
       youtubeAutoTranslateDescriptionsEnabled: true,
       youtubeAutoTranslateDebugEnabled: false,
       youtubeAutoTranslateTargetMode: "auto",
       youtubeAutoTranslateTargetLanguage: "en",
+      graftAiRewriterEnabled: true,
+      assetFinderEnabled: true,
       elementSelectorEnabled: false,
     }),
     localDefaults: Object.freeze({
@@ -92,6 +99,73 @@ const TWEAK_REGISTRY = Object.freeze({
       },
     },
     {
+      id: "force-dark-mode",
+      name: "Force Dark Mode",
+      description:
+        "Apply a balanced dark palette to sites that do not offer one.",
+      matchPatterns: GLOBAL_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "force-dark-mode-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "force-dark-mode-content",
+          path: "src/tweaks/force-dark-mode/content.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+      ],
+      hostTargets: ["*"],
+      optionsKeyPrefix: "forceDarkMode",
+      ui: {
+        popupSection: "Force Dark Mode",
+        settingsKeys: [
+          "forceDarkModeEnabled",
+          "forceDarkModeBlockedDomains",
+        ],
+      },
+    },
+    {
+      id: "sound-booster",
+      name: "Sound Booster",
+      description:
+        "Boost HTML5 audio and video volume with a global gain control.",
+      matchPatterns: GLOBAL_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "sound-booster-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "sound-booster-page",
+          path: "src/tweaks/sound-booster/page.js",
+          world: "MAIN",
+          runAt: "document_start",
+        },
+        {
+          id: "sound-booster-bridge",
+          path: "src/tweaks/sound-booster/bridge.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+      ],
+      hostTargets: ["*"],
+      optionsKeyPrefix: "soundBooster",
+      ui: {
+        popupSection: "Sound Booster",
+        settingsKeys: [
+          "soundBoosterEnabled",
+          "soundBoosterGain",
+          "soundBoosterBlockedDomains",
+        ],
+      },
+    },
+    {
       id: "element-selector",
       name: "Element Selector",
       description:
@@ -122,6 +196,70 @@ const TWEAK_REGISTRY = Object.freeze({
       ui: {
         popupSection: "Element Selector",
         settingsKeys: ["elementSelectorEnabled"],
+      },
+    },
+    {
+      id: "graft-ai-rewriter",
+      name: "AI Rewriter",
+      description:
+        "Reshape any website's look, layout, density, and shortcuts from a plain-English prompt.",
+      matchPatterns: GLOBAL_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "graft-ai-rewriter-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "graft-ai-rewriter-page",
+          path: "src/tweaks/graft-ai-rewriter/page.js",
+          world: "MAIN",
+          runAt: "document_start",
+        },
+        {
+          id: "graft-ai-rewriter-bridge",
+          path: "src/tweaks/graft-ai-rewriter/bridge.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+      ],
+      hostTargets: ["*"],
+      optionsKeyPrefix: "graftAiRewriter",
+      ui: {
+        popupSection: "AI Rewriter",
+        settingsKeys: [
+          "graftAiRewriterEnabled",
+          "graftAiHelperPort",
+          "graftAiHelperToken",
+        ],
+      },
+    },
+    {
+      id: "asset-finder",
+      name: "Asset Finder",
+      description:
+        "Scan the current page for visible media assets and browse them in an in-page panel.",
+      matchPatterns: GLOBAL_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "asset-finder-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "asset-finder-content",
+          path: "src/tweaks/asset-finder/content.js",
+          world: "ISOLATED",
+          runAt: "document_idle",
+        },
+      ],
+      hostTargets: ["*"],
+      optionsKeyPrefix: "assetFinder",
+      ui: {
+        popupSection: "Asset Finder",
+        settingsKeys: ["assetFinderEnabled", "assetFinderHideBlankAssets"],
       },
     },
     {

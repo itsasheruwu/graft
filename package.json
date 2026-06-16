@@ -19,7 +19,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "watch": "vite build --watch"
+    "watch": "vite build --watch",
+    "ai-helper": "node tools/graft-ai-helper.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

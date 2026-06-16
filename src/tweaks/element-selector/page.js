@@ -9,12 +9,40 @@
   const MESSAGE_UNDO = "BTM_ELEMENT_SELECTOR_UNDO";
   const MESSAGE_UNDO_APPLIED = "BTM_ELEMENT_SELECTOR_UNDO_APPLIED";
   const MESSAGE_REWRITE = "BTM_ELEMENT_SELECTOR_REWRITE";
+  const MESSAGE_AI_GENERATE = "BTM_GRAFT_AI_GENERATE";
+  const MESSAGE_AI_RESULT = "BTM_GRAFT_AI_RESULT";
+  const MESSAGE_AI_SAVE_RECIPE = "BTM_GRAFT_AI_SAVE_RECIPE";
 
   const CURSOR_CLASS = "btm-element-selector-mode";
   const STYLE_ID = "btm-element-selector-styles";
   const THEME_STYLE_ID = "btm-extension-theme-tokens";
   const SHARED_BTN_STYLE_ID = "btm-es-shared-button-styles";
   const MAX_COPY_TEXT_LENGTH = 20000;
+  const MAX_AI_CONTEXT_ELEMENTS = 80;
+  const MAX_AI_TEXT_LENGTH = 220;
+
+  const AI_ALLOWED_STYLE_PROPERTIES = new Set([
+    "backgroundColor",
+    "border",
+    "borderColor",
+    "borderRadius",
+    "boxShadow",
+    "color",
+    "display",
+    "fontSize",
+    "fontWeight",
+    "gap",
+    "lineHeight",
+    "margin",
+    "marginBottom",
+    "marginTop",
+    "maxWidth",
+    "opacity",
+    "padding",
+    "paddingBottom",
+    "paddingTop",
+    "transform",
+  ]);
 
   const OVERLAY_Z_INDEX = 2147483647;
   const CONTROL_Z_INDEX = 2147483648;
@@ -28,8 +56,12 @@
     activeElement: null,
     activeSignature: null,
     lockedTarget: null,
+    pendingLockedTargetActivation: null,
     removals: [],
     rewrites: [],
+    aiRecipes: [],
+    pendingAiRecipe: null,
+    pendingAiRequestId: null,
     initialized: false,
     overlayTargetRect: null,
     overlayCurrentRect: null,
@@ -63,6 +95,10 @@
   let overlayBox = null;
   /** @type {HTMLDivElement|null} */
   let controlRoot = null;
+  /** @type {Node|null} */
+  let controlRootHomeParent = null;
+  /** @type {Node|null} */
+  let controlRootHomeNextSibling = null;
   /** @type {HTMLDivElement|null} */
   let controlTitle = null;
   /** @type {HTMLButtonElement|null} */
@@ -85,10 +121,27 @@
   let rewriteApplyButton = null;
   /** @type {HTMLButtonElement|null} */
   let rewriteCancelButton = null;
+  /** @type {HTMLButtonElement|null} */
+  let aiRewriteButton = null;
+  /** @type {HTMLDivElement|null} */
+  let aiPanel = null;
+  /** @type {HTMLTextAreaElement|null} */
+  let aiPromptInput = null;
+  /** @type {HTMLDivElement|null} */
+  let aiPreviewList = null;
+  /** @type {HTMLButtonElement|null} */
+  let aiGenerateButton = null;
+  /** @type {HTMLButtonElement|null} */
+  let aiApplyButton = null;
+  /** @type {HTMLButtonElement|null} */
+  let aiCancelButton = null;
   /** @type {HTMLSpanElement|null} */
   let statusNode = null;
+  let statusSwapTimer = null;
   /** @type {HTMLStyleElement|null} */
   let styleNode = null;
+  /** @type {Map<string, () => void>} */
+  const aiShortcutCleanups = new Map();
 
   function motionReduced() {
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
@@ -151,8 +204,9 @@
       (target === overlayRoot ||
         target === overlayBox ||
         target === controlRoot ||
-        (controlRoot && controlRoot.contains(target)) ||
-        (overlayRoot && overlayRoot.contains(target)))
+        (target instanceof Node &&
+          ((controlRoot && controlRoot.contains(target)) ||
+            (overlayRoot && overlayRoot.contains(target)))))
     );
   }
 
@@ -281,6 +335,118 @@
     return output;
   }
 
+  function normalizeAiStyleMap(styles) {
+    if (!styles || typeof styles !== "object") {
+      return null;
+    }
+
+    const output = {};
+    for (const [property, rawValue] of Object.entries(styles)) {
+      if (!AI_ALLOWED_STYLE_PROPERTIES.has(property)) {
+        continue;
+      }
+      const value = String(rawValue || "").trim().slice(0, 180);
+      if (!value || /url\s*\(|expression\s*\(|javascript:/i.test(value)) {
+        continue;
+      }
+      output[property] = value;
+    }
+
+    return Object.keys(output).length > 0 ? output : null;
+  }
+
+  function normalizeAiAction(action) {
+    if (!action || typeof action !== "object") {
+      return null;
+    }
+    const target = normalizeSignature(action.target);
+    const reason = typeof action.reason === "string" ? action.reason.trim().slice(0, 220) : "";
+    if (!target || !reason) {
+      return null;
+    }
+
+    const base = {
+      id: typeof action.id === "string" ? action.id.slice(0, 120) : "",
+      type: action.type,
+      target,
+      reason,
+    };
+
+    if (action.type === "hide") {
+      return base;
+    }
+    if (action.type === "textRewrite") {
+      const newText = typeof action.newText === "string" ? action.newText.slice(0, 5000) : "";
+      return newText ? { ...base, newText } : null;
+    }
+    if (action.type === "style") {
+      const styles = normalizeAiStyleMap(action.styles);
+      return styles ? { ...base, styles } : null;
+    }
+    if (action.type === "move") {
+      const anchor = normalizeSignature(action.anchor);
+      const position = typeof action.position === "string" ? action.position : "";
+      if (!anchor || !["before", "after", "start", "end"].includes(position)) {
+        return null;
+      }
+      return { ...base, anchor, position };
+    }
+    if (action.type === "shortcut") {
+      const combo = typeof action.combo === "string" ? action.combo.slice(0, 80) : "";
+      const behavior =
+        typeof action.behavior === "string" ? action.behavior.slice(0, 80) : "";
+      if (!combo || !["click", "focus", "toggleHidden", "hide"].includes(behavior)) {
+        return null;
+      }
+      return { ...base, combo, behavior };
+    }
+
+    return null;
+  }
+
+  function normalizeAiRecipe(recipe) {
+    if (!recipe || typeof recipe !== "object") {
+      return null;
+    }
+    const actions = Array.isArray(recipe.actions)
+      ? recipe.actions.map(normalizeAiAction).filter(Boolean).slice(0, 40)
+      : [];
+    if (actions.length === 0) {
+      return null;
+    }
+    const domain = normalizeDomain(recipe.domain || state.domain);
+    if (!domain) {
+      return null;
+    }
+    return {
+      id:
+        typeof recipe.id === "string" && recipe.id
+          ? recipe.id.slice(0, 120)
+          : `graft-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      version: 1,
+      domain,
+      prompt: typeof recipe.prompt === "string" ? recipe.prompt.slice(0, 2000) : "",
+      summary:
+        typeof recipe.summary === "string" && recipe.summary.trim()
+          ? recipe.summary.slice(0, 500)
+          : "AI rewrite",
+      actions,
+      createdAt:
+        typeof recipe.createdAt === "string" && recipe.createdAt
+          ? recipe.createdAt.slice(0, 80)
+          : new Date().toISOString(),
+      sourceUrl: typeof recipe.sourceUrl === "string" ? recipe.sourceUrl.slice(0, 1000) : location.href,
+      enabled: recipe.enabled === false ? false : true,
+    };
+  }
+
+  function normalizeAiRecipes(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+    return list.map(normalizeAiRecipe).filter(Boolean);
+  }
+
   function canSafelyRewriteText(node) {
     if (!node || !(node instanceof Element)) {
       return false;
@@ -298,17 +464,21 @@
       return false;
     }
 
-    const text = (node.textContent || "").trim();
+    const text = getElementEditableText(node);
     if (!text) {
       return false;
     }
 
-    if (node.children.length === 0) {
+    const contentChildren = Array.from(node.children || []).filter(
+      (child) => child !== controlRoot
+    );
+
+    if (contentChildren.length === 0) {
       return true;
     }
 
-    if (node.children.length === 1) {
-      const child = node.children[0];
+    if (contentChildren.length === 1) {
+      const child = contentChildren[0];
       const inlineTags = new Set([
         "span",
         "a",
@@ -344,6 +514,12 @@
       return node.value || "";
     }
 
+    if (controlRoot && node.contains(controlRoot)) {
+      const clone = node.cloneNode(true);
+      clone.querySelector?.("#btm-element-selector-control")?.remove();
+      return (clone.textContent || "").trim();
+    }
+
     return (node.textContent || "").trim();
   }
 
@@ -360,6 +536,9 @@
       return;
     }
 
+    if (controlRoot && node.contains(controlRoot)) {
+      restoreControlRootHome();
+    }
     node.textContent = text;
   }
 
@@ -424,6 +603,152 @@
     applySessionRewrites();
   }
 
+  function comboMatchesEvent(combo, event) {
+    const parts = String(combo || "")
+      .toLowerCase()
+      .split("+")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length === 0) {
+      return false;
+    }
+    const key = parts[parts.length - 1];
+    const expectsMeta = parts.includes("cmd") || parts.includes("meta");
+    const expectsCtrl = parts.includes("ctrl") || parts.includes("control");
+    const expectsAlt = parts.includes("alt") || parts.includes("option");
+    const expectsShift = parts.includes("shift");
+    if (Boolean(event.metaKey) !== expectsMeta) {
+      return false;
+    }
+    if (Boolean(event.ctrlKey) !== expectsCtrl) {
+      return false;
+    }
+    if (Boolean(event.altKey) !== expectsAlt) {
+      return false;
+    }
+    if (Boolean(event.shiftKey) !== expectsShift) {
+      return false;
+    }
+    return String(event.key || "").toLowerCase() === key;
+  }
+
+  function applyAiAction(action) {
+    if (!action || !action.type) {
+      return false;
+    }
+
+    const element = findFirstMatchElement(action.target);
+    if (!element) {
+      return false;
+    }
+
+    if (action.type === "hide") {
+      removeMatchingNode(element);
+      return true;
+    }
+
+    if (action.type === "textRewrite") {
+      return applyRewriteToElement(element, action.newText || "");
+    }
+
+    if (action.type === "style") {
+      const styles = normalizeAiStyleMap(action.styles);
+      if (!styles) {
+        return false;
+      }
+      for (const [property, value] of Object.entries(styles)) {
+        element.style[property] = value;
+      }
+      return true;
+    }
+
+    if (action.type === "move") {
+      const anchor = findFirstMatchElement(action.anchor);
+      if (!anchor || anchor === element || element.contains(anchor)) {
+        return false;
+      }
+      if (action.position === "before") {
+        anchor.parentNode?.insertBefore(element, anchor);
+        return true;
+      }
+      if (action.position === "after") {
+        anchor.parentNode?.insertBefore(element, anchor.nextSibling);
+        return true;
+      }
+      if (action.position === "start") {
+        anchor.insertBefore(element, anchor.firstChild);
+        return true;
+      }
+      if (action.position === "end") {
+        anchor.appendChild(element);
+        return true;
+      }
+      return false;
+    }
+
+    if (action.type === "shortcut") {
+      const key = `${action.combo}|${action.behavior}|${signatureStableKey(action.target)}`;
+      if (aiShortcutCleanups.has(key)) {
+        return true;
+      }
+      const handler = (event) => {
+        if (!comboMatchesEvent(action.combo, event)) {
+          return;
+        }
+        const target = findFirstMatchElement(action.target);
+        if (!target) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        if (action.behavior === "click") {
+          target.click();
+        } else if (action.behavior === "focus" && typeof target.focus === "function") {
+          target.focus();
+        } else if (action.behavior === "toggleHidden") {
+          target.hidden = !target.hidden;
+        } else if (action.behavior === "hide") {
+          removeMatchingNode(target);
+        }
+      };
+      window.addEventListener("keydown", handler, true);
+      aiShortcutCleanups.set(key, () => window.removeEventListener("keydown", handler, true));
+      return true;
+    }
+
+    return false;
+  }
+
+  function clearAiShortcuts() {
+    for (const cleanup of aiShortcutCleanups.values()) {
+      cleanup();
+    }
+    aiShortcutCleanups.clear();
+  }
+
+  function applyAiRecipe(recipe) {
+    const normalized = normalizeAiRecipe(recipe);
+    if (!normalized || normalized.enabled === false) {
+      return 0;
+    }
+    let applied = 0;
+    for (const action of normalized.actions) {
+      if (applyAiAction(action)) {
+        applied += 1;
+      }
+    }
+    return applied;
+  }
+
+  function applyAiRecipesFromState() {
+    clearAiShortcuts();
+    for (const recipe of state.aiRecipes || []) {
+      if (recipe.enabled !== false) {
+        applyAiRecipe(recipe);
+      }
+    }
+  }
+
   function ensureBtmThemeTokens() {
     if (document.getElementById(THEME_STYLE_ID)) {
       return;
@@ -446,6 +771,21 @@
         --btm-ring: oklch(0.556 0 0);
         --btm-accent: oklch(0.488 0.243 264.376);
         --btm-radius: 0.625rem;
+        --text-swap-dur: 150ms;
+        --text-swap-translate-y: 4px;
+        --text-swap-blur: 2px;
+        --text-swap-ease: ease-in-out;
+        --panel-open-dur: 400ms;
+        --panel-close-dur: 350ms;
+        --panel-translate-y: 14px;
+        --panel-blur: 2px;
+        --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+        --pulse-dur: 1000ms;
+        --pulse-count: 1;
+        --pulse-min: 0.5;
+        --reveal-dur: 400ms;
+        --reveal-blur: 2px;
+        --reveal-ease: ease-in-out;
       }
     `;
     document.documentElement.appendChild(node);
@@ -606,18 +946,72 @@
         color: var(--btm-muted-fg);
         min-height: 14px;
       }
+      .t-text-swap {
+        display: inline-block;
+        transform: translateY(0);
+        filter: blur(0);
+        opacity: 1;
+        transition:
+          transform var(--text-swap-dur) var(--text-swap-ease),
+          filter var(--text-swap-dur) var(--text-swap-ease),
+          opacity var(--text-swap-dur) var(--text-swap-ease);
+        will-change: transform, filter, opacity;
+      }
+      .t-text-swap.is-exit {
+        transform: translateY(calc(var(--text-swap-translate-y) * -1));
+        filter: blur(var(--text-swap-blur));
+        opacity: 0;
+      }
+      .t-text-swap.is-enter-start {
+        transform: translateY(var(--text-swap-translate-y));
+        filter: blur(var(--text-swap-blur));
+        opacity: 0;
+        transition: none;
+      }
+      .t-panel-slide {
+        transform: translateY(var(--panel-translate-y));
+        opacity: 0;
+        filter: blur(var(--panel-blur));
+        pointer-events: none;
+        transition:
+          transform var(--panel-close-dur) var(--panel-ease),
+          opacity var(--panel-close-dur) var(--panel-ease),
+          filter var(--panel-close-dur) var(--panel-ease),
+          max-height var(--panel-close-dur) var(--panel-ease);
+        will-change: transform, opacity, filter;
+      }
+      .t-panel-slide[data-open="true"] {
+        transform: translateY(0);
+        opacity: 1;
+        filter: blur(0);
+        pointer-events: auto;
+        transition:
+          transform var(--panel-open-dur) var(--panel-ease),
+          opacity var(--panel-open-dur) var(--panel-ease),
+          filter var(--panel-open-dur) var(--panel-ease),
+          max-height var(--panel-open-dur) var(--panel-ease);
+      }
+      .t-skel-skeleton.is-pulsing > * {
+        animation: btm-skel-pulse var(--pulse-dur) ease-in-out var(--pulse-count);
+      }
+      @keyframes btm-skel-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: var(--pulse-min); }
+      }
       .btm-es-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
       }
       .btm-es-rewrite-panel {
-        display: none;
+        display: flex;
         flex-direction: column;
         gap: 8px;
+        max-height: 0;
+        overflow: hidden;
       }
       .btm-es-rewrite-panel.is-open {
-        display: flex;
+        max-height: 260px;
       }
       .btm-es-rewrite-input {
         width: 100%;
@@ -655,6 +1049,76 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+      }
+      .btm-es-ai-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: min(420px, calc(100vw - 40px));
+        max-height: 0;
+        overflow: hidden;
+      }
+      .btm-es-ai-panel.is-open {
+        max-height: 520px;
+      }
+      .btm-es-ai-copy {
+        margin: 0;
+        color: var(--btm-muted-fg);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .btm-es-ai-preview {
+        display: block;
+        max-height: 180px;
+        overflow: auto;
+        border: 1px solid var(--btm-border);
+        border-radius: calc(var(--btm-radius) * 0.7);
+        background: color-mix(in oklch, var(--btm-bg) 45%, transparent);
+        max-height: 0;
+      }
+      .btm-es-ai-preview.is-open {
+        max-height: 180px;
+      }
+      .btm-es-ai-preview-item {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--btm-border);
+      }
+      .btm-es-ai-preview-item:last-child {
+        border-bottom: none;
+      }
+      .btm-es-ai-preview-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--btm-fg);
+      }
+      .btm-es-ai-preview-reason {
+        margin-top: 2px;
+        color: var(--btm-muted-fg);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .btm-es-ai-preview-skeleton {
+        padding: 8px 10px;
+      }
+      .btm-es-ai-preview-bar {
+        height: 9px;
+        border-radius: 999px;
+        background: color-mix(in oklch, var(--btm-muted-fg) 24%, transparent);
+      }
+      .btm-es-ai-preview-bar + .btm-es-ai-preview-bar {
+        margin-top: 7px;
+      }
+      .btm-es-ai-preview-bar--short {
+        width: 64%;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .t-text-swap,
+        .t-panel-slide {
+          transition: none !important;
+        }
+        .t-skel-skeleton.is-pulsing > * {
+          animation: none !important;
+        }
       }
     `;
     document.documentElement.appendChild(styleNode);
@@ -720,12 +1184,19 @@
     rewriteButton.textContent = "Rewrite";
     rewriteButton.style.display = "none";
 
+    aiRewriteButton = document.createElement("button");
+    aiRewriteButton.type = "button";
+    aiRewriteButton.className = "btm-es-btn btm-es-btn--outline";
+    aiRewriteButton.textContent = "AI Rewrite Page";
+
     actions.appendChild(removeButton);
     actions.appendChild(copyButton);
     actions.appendChild(rewriteButton);
+    actions.appendChild(aiRewriteButton);
 
     rewritePanel = document.createElement("div");
-    rewritePanel.className = "btm-es-rewrite-panel";
+    rewritePanel.className = "btm-es-rewrite-panel t-panel-slide";
+    rewritePanel.dataset.open = "false";
 
     rewriteInput = document.createElement("textarea");
     rewriteInput.className = "btm-es-rewrite-input";
@@ -759,13 +1230,59 @@
     rewritePanel.appendChild(persistLabel);
     rewritePanel.appendChild(rewriteActions);
 
+    aiPanel = document.createElement("div");
+    aiPanel.className = "btm-es-ai-panel t-panel-slide";
+    aiPanel.dataset.open = "false";
+
+    const aiCopy = document.createElement("p");
+    aiCopy.className = "btm-es-ai-copy";
+    aiCopy.textContent =
+      "Describe how this page should look or behave. Graft previews safe actions before applying anything.";
+
+    aiPromptInput = document.createElement("textarea");
+    aiPromptInput.className = "btm-es-rewrite-input";
+    aiPromptInput.setAttribute("aria-label", "AI rewrite prompt");
+    aiPromptInput.placeholder = "Example: make this page calmer and remove distracting feed items";
+
+    aiPreviewList = document.createElement("div");
+    aiPreviewList.className = "btm-es-ai-preview t-panel-slide";
+    aiPreviewList.dataset.open = "false";
+
+    const aiActions = document.createElement("div");
+    aiActions.className = "btm-es-rewrite-actions";
+
+    aiGenerateButton = document.createElement("button");
+    aiGenerateButton.type = "button";
+    aiGenerateButton.className = "btm-es-btn btm-es-btn--primary";
+    aiGenerateButton.textContent = "Generate";
+
+    aiApplyButton = document.createElement("button");
+    aiApplyButton.type = "button";
+    aiApplyButton.className = "btm-es-btn btm-es-btn--primary";
+    aiApplyButton.textContent = "Apply";
+    aiApplyButton.style.display = "none";
+
+    aiCancelButton = document.createElement("button");
+    aiCancelButton.type = "button";
+    aiCancelButton.className = "btm-es-btn btm-es-btn--outline";
+    aiCancelButton.textContent = "Cancel";
+
+    aiActions.appendChild(aiGenerateButton);
+    aiActions.appendChild(aiApplyButton);
+    aiActions.appendChild(aiCancelButton);
+    aiPanel.appendChild(aiCopy);
+    aiPanel.appendChild(aiPromptInput);
+    aiPanel.appendChild(aiPreviewList);
+    aiPanel.appendChild(aiActions);
+
     statusNode = document.createElement("span");
-    statusNode.className = "btm-es-control-meta";
+    statusNode.className = "btm-es-control-meta t-text-swap";
     statusNode.textContent = "";
 
     content.appendChild(controlHead);
     content.appendChild(actions);
     content.appendChild(rewritePanel);
+    content.appendChild(aiPanel);
     content.appendChild(statusNode);
     controlRoot.appendChild(content);
 
@@ -775,6 +1292,14 @@
     rewriteButton.addEventListener("click", onOpenRewritePanel);
     rewriteApplyButton.addEventListener("click", onApplyRewrite);
     rewriteCancelButton.addEventListener("click", onCloseRewritePanel);
+    aiRewriteButton.addEventListener("click", onOpenAiPanel);
+    aiGenerateButton.addEventListener("click", onGenerateAiRecipe);
+    aiApplyButton.addEventListener("click", onApplyAiPreview);
+    aiCancelButton.addEventListener("click", onCloseAiPanel);
+
+    for (const eventName of ["pointerdown", "mousedown", "mouseup", "click"]) {
+      controlRoot.addEventListener(eventName, stopControlEventFromReachingPage);
+    }
   }
 
   function mountRoots() {
@@ -793,11 +1318,64 @@
     }
     if (!controlRoot.isConnected) {
       mount.appendChild(controlRoot);
+      controlRootHomeParent = mount;
+      controlRootHomeNextSibling = null;
+    } else if (!controlRootHomeParent) {
+      controlRootHomeParent = controlRoot.parentNode;
+      controlRootHomeNextSibling = controlRoot.nextSibling;
     }
     overlayRoot.style.display = "block";
   }
 
+  function canHostControlRoot(element) {
+    if (!element || !(element instanceof Element)) {
+      return false;
+    }
+    const tag = element.tagName.toLowerCase();
+    return ![
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "link",
+      "meta",
+      "param",
+      "source",
+      "track",
+      "wbr",
+    ].includes(tag);
+  }
+
+  function restoreControlRootHome() {
+    if (!controlRoot) {
+      return;
+    }
+    const parent = controlRootHomeParent?.isConnected
+      ? controlRootHomeParent
+      : document.body || document.documentElement;
+    if (!parent) {
+      return;
+    }
+    if (controlRoot.parentNode === parent) {
+      return;
+    }
+    if (controlRootHomeNextSibling && controlRootHomeNextSibling.parentNode === parent) {
+      parent.insertBefore(controlRoot, controlRootHomeNextSibling);
+    } else {
+      parent.appendChild(controlRoot);
+    }
+  }
+
+  function syncControlRootMountForLock() {
+    restoreControlRootHome();
+  }
+
   function clearHighlight() {
+    restoreControlRootHome();
     cancelOverlayAnimation();
     state.overlayTargetRect = null;
     state.overlayCurrentRect = null;
@@ -810,8 +1388,220 @@
     state.activeElement = null;
     state.activeSignature = null;
     state.lockedTarget = null;
+    state.pendingLockedTargetActivation = null;
     closeRewritePanel();
+    closeAiPanel();
     syncUnlockButtonVisibility();
+  }
+
+  function isWithinLockedTarget(target) {
+    return (
+      !!state.lockedTarget &&
+      !!target &&
+      target instanceof Node &&
+      (target === state.lockedTarget || state.lockedTarget.contains(target))
+    );
+  }
+
+  function suppressPageInteraction(event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.stopPropagation();
+  }
+
+  function eventTouchesLockedOrTool(event) {
+    const target = event.target;
+    const relatedTarget = event.relatedTarget;
+    return (
+      isWithinLockedTarget(target) ||
+      isToolElement(target) ||
+      isWithinLockedTarget(relatedTarget) ||
+      isToolElement(relatedTarget)
+    );
+  }
+
+  function shouldPreserveControlFocusTarget(target) {
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      target?.isContentEditable === true
+    );
+  }
+
+  function shouldAllowLockedTargetActivation(target) {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
+    const interactivePopup = target.closest(
+      "select,summary,[aria-haspopup],[aria-expanded],[role='combobox']"
+    );
+    return !!interactivePopup;
+  }
+
+  function stopControlEventFromReachingPage(event) {
+    if (event.type === "pointerdown" || event.type === "mousedown") {
+      if (!shouldPreserveControlFocusTarget(event.target)) {
+        event.preventDefault();
+      }
+    }
+    event.stopPropagation();
+  }
+
+  function closestControlButton(target) {
+    if (!(target instanceof Element) || !controlRoot?.contains(target)) {
+      return null;
+    }
+    const button = target.closest("button");
+    return button && controlRoot.contains(button) ? button : null;
+  }
+
+  function closestControlCheckbox(target) {
+    if (!(target instanceof Element) || !controlRoot?.contains(target)) {
+      return null;
+    }
+    if (target instanceof HTMLInputElement && target.type === "checkbox") {
+      return target;
+    }
+    const label = target.closest("label");
+    const input = label?.querySelector?.("input[type='checkbox']");
+    return input instanceof HTMLInputElement ? input : null;
+  }
+
+  function invokeControlButton(button, event) {
+    if (!button || button.disabled) {
+      return false;
+    }
+    if (button === unlockButton) {
+      onUnlockSelection(event);
+      return true;
+    }
+    if (button === removeButton) {
+      onRemoveSelected();
+      return true;
+    }
+    if (button === copyButton) {
+      onCopySelected();
+      return true;
+    }
+    if (button === rewriteButton) {
+      onOpenRewritePanel(event);
+      return true;
+    }
+    if (button === rewriteApplyButton) {
+      onApplyRewrite(event);
+      return true;
+    }
+    if (button === rewriteCancelButton) {
+      onCloseRewritePanel(event);
+      return true;
+    }
+    if (button === aiRewriteButton) {
+      onOpenAiPanel(event);
+      return true;
+    }
+    if (button === aiGenerateButton) {
+      onGenerateAiRecipe(event);
+      return true;
+    }
+    if (button === aiApplyButton) {
+      onApplyAiPreview(event);
+      return true;
+    }
+    if (button === aiCancelButton) {
+      onCloseAiPanel(event);
+      return true;
+    }
+    return false;
+  }
+
+  function toggleControlCheckbox(checkbox) {
+    if (!checkbox || checkbox.disabled) {
+      return false;
+    }
+    checkbox.checked = !checkbox.checked;
+    checkbox.dispatchEvent(new Event("input", { bubbles: true }));
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+
+  function handleToolEventAtWindowCapture(event) {
+    if (!state.enabled || !isToolElement(event.target)) {
+      return;
+    }
+
+    suppressPageInteraction(event);
+
+    if (event.target === overlayRoot || event.target === overlayBox) {
+      return;
+    }
+
+    const isPrimaryPointerDown =
+      event.type === "pointerdown" &&
+      (!("button" in event) || event.button === 0);
+
+    if (isPrimaryPointerDown) {
+      const button = closestControlButton(event.target);
+      if (button && invokeControlButton(button, event)) {
+        return;
+      }
+
+      const checkbox = closestControlCheckbox(event.target);
+      if (checkbox && toggleControlCheckbox(checkbox)) {
+        return;
+      }
+
+      if (shouldPreserveControlFocusTarget(event.target)) {
+        event.target.focus?.();
+      }
+      return;
+    }
+
+    if (event.type === "click" && event.detail === 0) {
+      const button = closestControlButton(event.target);
+      invokeControlButton(button, event);
+    }
+  }
+
+  function handleLockedDismissalEventAtWindowCapture(event) {
+    if (!state.enabled || !state.lockedTarget) {
+      return;
+    }
+    if (!state.lockedTarget.isConnected) {
+      return;
+    }
+    if (!eventTouchesLockedOrTool(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.stopPropagation();
+
+    if (event.type === "focusout" || event.type === "blur") {
+      if (shouldPreserveControlFocusTarget(event.relatedTarget)) {
+        event.relatedTarget.focus?.();
+      } else if (document.activeElement === document.body) {
+        state.lockedTarget.focus?.({ preventScroll: true });
+      }
+    }
+  }
+
+  function handleLockedPageEventAtWindowCapture(event) {
+    if (!state.enabled || !state.lockedTarget) {
+      return;
+    }
+    if (!state.lockedTarget.isConnected) {
+      return;
+    }
+    if (isToolElement(event.target)) {
+      return;
+    }
+    if (isWithinLockedTarget(event.target)) {
+      return;
+    }
+    suppressPageInteraction(event);
   }
 
   function elementFromPoint(x, y) {
@@ -1057,6 +1847,7 @@
     if (
       (!state.removals || state.removals.length === 0) &&
       (!state.rewrites || state.rewrites.length === 0) &&
+      (!state.aiRecipes || state.aiRecipes.length === 0) &&
       sessionRewrites.size === 0
     ) {
       return;
@@ -1075,6 +1866,9 @@
       ) {
         applyAllRewritesFromState();
       }
+      if (state.aiRecipes && state.aiRecipes.length > 0) {
+        applyAiRecipesFromState();
+      }
     }, REMOVAL_DOM_DEBOUNCE_MS);
   }
 
@@ -1082,6 +1876,7 @@
     if (
       (!state.removals || state.removals.length === 0) &&
       (!state.rewrites || state.rewrites.length === 0) &&
+      (!state.aiRecipes || state.aiRecipes.length === 0) &&
       sessionRewrites.size === 0
     ) {
       teardownRemovalDomObserver();
@@ -1568,25 +2363,58 @@
     if (!statusNode) {
       return;
     }
-    statusNode.textContent = message;
+    const next = message || "";
+    if (statusSwapTimer) {
+      clearTimeout(statusSwapTimer);
+      statusSwapTimer = null;
+    }
     if (error) {
       statusNode.style.color = "var(--btm-destructive)";
     } else {
       statusNode.style.removeProperty("color");
     }
+    if (statusNode.textContent === next || motionReduced()) {
+      statusNode.textContent = next;
+      statusNode.classList.remove("is-exit", "is-enter-start");
+      return;
+    }
+    const duration =
+      parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--text-swap-dur")
+      ) || 150;
+    statusNode.classList.add("is-exit");
+    statusSwapTimer = window.setTimeout(() => {
+      statusNode.textContent = next;
+      statusNode.classList.remove("is-exit");
+      statusNode.classList.add("is-enter-start");
+      void statusNode.offsetHeight;
+      statusNode.classList.remove("is-enter-start");
+      statusSwapTimer = null;
+    }, duration);
   }
 
   function syncUnlockButtonVisibility() {
     if (!unlockButton) {
       return;
     }
+    syncControlRootMountForLock();
     unlockButton.style.display = state.lockedTarget ? "inline-flex" : "none";
+    syncPageLockShield();
+  }
+
+  function syncPageLockShield() {
+    if (!overlayRoot) {
+      return;
+    }
+    overlayRoot.style.pointerEvents =
+      state.lockedTarget && !state.pendingLockedTargetActivation ? "auto" : "none";
   }
 
   function onUnlockSelection(event) {
     event.preventDefault();
     event.stopPropagation();
     state.lockedTarget = null;
+    state.pendingLockedTargetActivation = null;
     clearHighlight();
   }
 
@@ -1602,11 +2430,17 @@
     rewriteButton.style.display = show ? "inline-flex" : "none";
   }
 
+  function setPanelOpen(panel, open) {
+    if (!panel) {
+      return;
+    }
+    panel.classList.toggle("is-open", open);
+    panel.dataset.open = open ? "true" : "false";
+  }
+
   function closeRewritePanel() {
     rewritePanelOpen = false;
-    if (rewritePanel) {
-      rewritePanel.classList.remove("is-open");
-    }
+    setPanelOpen(rewritePanel, false);
     if (actionsRow) {
       actionsRow.style.display = "flex";
     }
@@ -1617,6 +2451,299 @@
       rewritePersistCheckbox.checked = false;
     }
     syncRewriteButtonVisibility();
+  }
+
+  function closeAiPanel() {
+    state.pendingAiRecipe = null;
+    state.pendingAiRequestId = null;
+    setPanelOpen(aiPanel, false);
+    if (aiPreviewList) {
+      setPanelOpen(aiPreviewList, false);
+      aiPreviewList.textContent = "";
+    }
+    if (aiApplyButton) {
+      aiApplyButton.style.display = "none";
+    }
+    if (aiGenerateButton) {
+      aiGenerateButton.disabled = false;
+      aiGenerateButton.textContent = "Generate";
+    }
+    if (actionsRow) {
+      actionsRow.style.display = "flex";
+    }
+  }
+
+  function isElementVisibleForAi(element) {
+    if (!element || !(element instanceof Element) || shouldSkipRemovalTarget(element)) {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4) {
+      return false;
+    }
+    const style = getComputedStyle(element);
+    return style.visibility !== "hidden" && style.display !== "none" && Number(style.opacity || 1) > 0;
+  }
+
+  function elementRoleForAi(element) {
+    const tag = element.tagName.toLowerCase();
+    if (/^h[1-6]$/.test(tag)) {
+      return "heading";
+    }
+    if (tag === "a") {
+      return "link";
+    }
+    if (tag === "button" || element.getAttribute("role") === "button") {
+      return "button";
+    }
+    if (["input", "textarea", "select"].includes(tag)) {
+      return "form-control";
+    }
+    if (["nav", "main", "aside", "header", "footer", "section", "article"].includes(tag)) {
+      return tag;
+    }
+    return "content";
+  }
+
+  function summarizeElementForAi(element) {
+    const rect = element.getBoundingClientRect();
+    const signature = buildSignature(element);
+    return {
+      role: elementRoleForAi(element),
+      tagName: signature.tagName,
+      text: (element.innerText || element.textContent || "").trim().slice(0, MAX_AI_TEXT_LENGTH),
+      href: element instanceof HTMLAnchorElement ? element.href.slice(0, 300) : "",
+      selectorPath: signature.selectorPath,
+      primarySelector: signature.primarySelector,
+      signature: {
+        tagName: signature.tagName,
+        id: signature.id,
+        classes: signature.classes.slice(0, 8),
+        selectorPath: signature.selectorPath,
+        primarySelector: signature.primarySelector,
+        sourceUrl: signature.sourceUrl,
+      },
+      rect: {
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      },
+    };
+  }
+
+  function collectAiPageContext() {
+    const candidates = Array.from(
+      document.querySelectorAll(
+        "h1,h2,h3,h4,h5,h6,a,button,input,textarea,select,nav,main,aside,header,footer,section,article,[role='button']"
+      )
+    );
+    const elements = [];
+    const seen = new Set();
+    for (const element of candidates) {
+      if (!isElementVisibleForAi(element)) {
+        continue;
+      }
+      const signature = buildSignature(element);
+      const key = signatureStableKey(signature);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      elements.push(summarizeElementForAi(element));
+      if (elements.length >= MAX_AI_CONTEXT_ELEMENTS) {
+        break;
+      }
+    }
+
+    return {
+      domain: state.domain || normalizeDomain(),
+      page: {
+        url: location.href,
+        title: document.title,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      },
+      selectedElement:
+        state.activeElement && state.activeSignature
+          ? summarizeElementForAi(state.activeElement)
+          : null,
+      existingEdits: {
+        removals: state.removals || [],
+        rewrites: state.rewrites || [],
+        aiRecipes: state.aiRecipes || [],
+      },
+      elements,
+    };
+  }
+
+  function renderAiPreviewSkeleton() {
+    if (!aiPreviewList) {
+      return;
+    }
+    aiPreviewList.textContent = "";
+    const skeleton = document.createElement("div");
+    skeleton.className = "btm-es-ai-preview-skeleton t-skel-skeleton is-pulsing";
+    for (let i = 0; i < 3; i += 1) {
+      const bar = document.createElement("div");
+      bar.className =
+        i === 2
+          ? "btm-es-ai-preview-bar btm-es-ai-preview-bar--short"
+          : "btm-es-ai-preview-bar";
+      skeleton.appendChild(bar);
+    }
+    aiPreviewList.appendChild(skeleton);
+    setPanelOpen(aiPreviewList, true);
+  }
+
+  function renderAiPreview(recipe) {
+    if (!aiPreviewList) {
+      return;
+    }
+    aiPreviewList.textContent = "";
+    const normalized = normalizeAiRecipe(recipe);
+    if (!normalized) {
+      setPanelOpen(aiPreviewList, false);
+      return;
+    }
+    const summary = document.createElement("div");
+    summary.className = "btm-es-ai-preview-item";
+    const title = document.createElement("div");
+    title.className = "btm-es-ai-preview-title";
+    title.textContent = normalized.summary;
+    const meta = document.createElement("div");
+    meta.className = "btm-es-ai-preview-reason";
+    meta.textContent = `${normalized.actions.length} safe action${normalized.actions.length === 1 ? "" : "s"} for ${normalized.domain}`;
+    summary.appendChild(title);
+    summary.appendChild(meta);
+    aiPreviewList.appendChild(summary);
+
+    for (const action of normalized.actions) {
+      const row = document.createElement("div");
+      row.className = "btm-es-ai-preview-item";
+      const rowTitle = document.createElement("div");
+      rowTitle.className = "btm-es-ai-preview-title";
+      rowTitle.textContent = action.type;
+      const reason = document.createElement("div");
+      reason.className = "btm-es-ai-preview-reason";
+      reason.textContent = action.reason;
+      row.appendChild(rowTitle);
+      row.appendChild(reason);
+      aiPreviewList.appendChild(row);
+    }
+    setPanelOpen(aiPreviewList, true);
+  }
+
+  function onOpenAiPanel(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closeRewritePanel();
+    setPanelOpen(aiPanel, true);
+    if (actionsRow) {
+      actionsRow.style.display = "none";
+    }
+    if (aiPromptInput) {
+      aiPromptInput.focus();
+    }
+    setStatus("");
+  }
+
+  function onCloseAiPanel(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    closeAiPanel();
+    setStatus("");
+  }
+
+  function onGenerateAiRecipe(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const prompt = (aiPromptInput?.value || "").trim();
+    if (!prompt) {
+      setStatus("Enter a rewrite prompt first.", true);
+      return;
+    }
+    const requestId = `graft-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    state.pendingAiRequestId = requestId;
+    state.pendingAiRecipe = null;
+    if (aiGenerateButton) {
+      aiGenerateButton.disabled = true;
+      aiGenerateButton.textContent = "Generating…";
+    }
+    if (aiApplyButton) {
+      aiApplyButton.style.display = "none";
+    }
+    renderAiPreviewSkeleton();
+    setStatus("Asking local graft-ai-helper…");
+    window.postMessage(
+      {
+        source: MESSAGE_SOURCE,
+        type: MESSAGE_AI_GENERATE,
+        requestId,
+        prompt,
+        context: collectAiPageContext(),
+      },
+      "*"
+    );
+  }
+
+  function onApplyAiPreview(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const recipe = normalizeAiRecipe(state.pendingAiRecipe);
+    if (!recipe) {
+      setStatus("No valid AI recipe to apply.", true);
+      return;
+    }
+    const applied = applyAiRecipe(recipe);
+    if (applied === 0) {
+      setStatus("Could not match any proposed actions on this page.", true);
+      return;
+    }
+    window.postMessage(
+      {
+        source: MESSAGE_SOURCE,
+        type: MESSAGE_AI_SAVE_RECIPE,
+        recipe: { ...recipe, enabled: true },
+      },
+      "*"
+    );
+    state.aiRecipes = normalizeAiRecipes([
+      ...state.aiRecipes.filter((item) => item.id !== recipe.id),
+      recipe,
+    ]);
+    closeAiPanel();
+    syncRemovalDomObserver();
+    setStatus(`Applied and saved ${applied} AI action${applied === 1 ? "" : "s"}.`);
+    setTimeout(() => setStatus(""), 1800);
+  }
+
+  function handleAiResult(data) {
+    if (!data || data.requestId !== state.pendingAiRequestId) {
+      return;
+    }
+    if (aiGenerateButton) {
+      aiGenerateButton.disabled = false;
+      aiGenerateButton.textContent = "Generate";
+    }
+    const response = data.response;
+    if (!response?.ok || !response.recipe) {
+      setStatus(response?.error || "AI helper returned no recipe.", true);
+      return;
+    }
+    const recipe = normalizeAiRecipe(response.recipe);
+    if (!recipe) {
+      setStatus("AI helper returned an unsafe or invalid recipe.", true);
+      return;
+    }
+    state.pendingAiRecipe = recipe;
+    renderAiPreview(recipe);
+    if (aiApplyButton) {
+      aiApplyButton.style.display = "inline-flex";
+    }
+    setStatus("Preview ready. Apply to save this domain recipe.");
   }
 
   function onOpenRewritePanel(event) {
@@ -1631,9 +2758,7 @@
     }
 
     rewritePanelOpen = true;
-    if (rewritePanel) {
-      rewritePanel.classList.add("is-open");
-    }
+    setPanelOpen(rewritePanel, true);
     if (actionsRow) {
       actionsRow.style.display = "none";
     }
@@ -1732,6 +2857,7 @@
     removeButton && (removeButton.disabled = false);
     copyButton && (copyButton.disabled = false);
     closeRewritePanel();
+    closeAiPanel();
     syncRewriteButtonVisibility();
   }
 
@@ -1779,6 +2905,7 @@
     if (state.lockedTarget) {
       if (!state.lockedTarget.isConnected) {
         state.lockedTarget = null;
+        state.pendingLockedTargetActivation = null;
         clearHighlight();
         return;
       }
@@ -1806,21 +2933,39 @@
       return;
     }
     if (isToolElement(event.target)) {
+      if (event.target === overlayRoot || event.target === overlayBox) {
+        suppressPageInteraction(event);
+      }
+      return;
+    }
+
+    if (state.lockedTarget) {
+      if (!state.lockedTarget.isConnected) {
+        state.lockedTarget = null;
+        state.pendingLockedTargetActivation = null;
+        clearHighlight();
+        return;
+      }
+      markActive(state.lockedTarget);
+      if (!isWithinLockedTarget(event.target)) {
+        suppressPageInteraction(event);
+      }
+      syncPageLockShield();
       return;
     }
 
     const node = elementFromPoint(event.clientX, event.clientY);
     if (node && isValidNodeCandidate(node)) {
       state.lockedTarget = node;
+      state.pendingLockedTargetActivation = node;
       markActive(node);
     } else {
       state.lockedTarget = null;
+      state.pendingLockedTargetActivation = null;
       clearHighlight();
+      suppressPageInteraction(event);
     }
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
+    syncPageLockShield();
   }
 
   function handleClickCapture(event) {
@@ -1830,9 +2975,19 @@
     if (isToolElement(event.target)) {
       return;
     }
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
+    if (
+      state.lockedTarget &&
+      state.pendingLockedTargetActivation === state.lockedTarget &&
+      isWithinLockedTarget(event.target) &&
+      shouldAllowLockedTargetActivation(state.lockedTarget)
+    ) {
+      state.pendingLockedTargetActivation = null;
+      syncPageLockShield();
+      return;
+    }
+    state.pendingLockedTargetActivation = null;
+    syncPageLockShield();
+    suppressPageInteraction(event);
   }
 
   function copyTextToClipboard(payload) {
@@ -2018,6 +3173,7 @@
         return;
       }
       state.lockedTarget = null;
+      state.pendingLockedTargetActivation = null;
       clearHighlight();
       event.preventDefault();
       return;
@@ -2077,6 +3233,7 @@
     const enabled = Boolean(data.elementSelectorEnabled);
     const removals = normalizeSignatures(data.removals || []);
     const rewrites = normalizeRewrites(data.rewrites || []);
+    const aiRecipes = normalizeAiRecipes(data.aiRecipes || []);
     const locateSig = data.locateSignature ? normalizeSignature(data.locateSignature) : null;
     const locateRid = typeof data.locateRequestId === "string" ? data.locateRequestId : null;
     const locateKind =
@@ -2087,12 +3244,14 @@
     state.domain = normalizeDomain(data.domain || state.domain);
     state.removals = removals;
     state.rewrites = rewrites;
+    state.aiRecipes = aiRecipes;
     state.locateSignature = locateSig;
     state.locateRequestId = locateRid;
     state.locateKind = locateKind;
 
     applyPersistedRemovalsFromState();
     applyAllRewritesFromState();
+    applyAiRecipesFromState();
     syncRemovalDomObserver();
 
     if (locateSig && locateRid) {
@@ -2136,6 +3295,11 @@
       return;
     }
 
+    if (data.type === MESSAGE_AI_RESULT) {
+      handleAiResult(data);
+      return;
+    }
+
     if (data.type !== MESSAGE_STATE) {
       return;
     }
@@ -2144,14 +3308,36 @@
   }
 
   window.addEventListener("message", handleMessage);
+  window.addEventListener("pointerdown", handleToolEventAtWindowCapture, true);
+  window.addEventListener("pointermove", handleToolEventAtWindowCapture, true);
+  window.addEventListener("pointerover", handleToolEventAtWindowCapture, true);
+  window.addEventListener("pointerout", handleToolEventAtWindowCapture, true);
+  window.addEventListener("mousedown", handleToolEventAtWindowCapture, true);
+  window.addEventListener("mousemove", handleToolEventAtWindowCapture, true);
+  window.addEventListener("mouseover", handleToolEventAtWindowCapture, true);
+  window.addEventListener("mouseout", handleToolEventAtWindowCapture, true);
+  window.addEventListener("mouseup", handleToolEventAtWindowCapture, true);
+  window.addEventListener("click", handleToolEventAtWindowCapture, true);
+  window.addEventListener("pointerdown", handleLockedPageEventAtWindowCapture, true);
+  window.addEventListener("mousedown", handleLockedPageEventAtWindowCapture, true);
+  window.addEventListener("mouseup", handleLockedPageEventAtWindowCapture, true);
+  window.addEventListener("click", handleLockedPageEventAtWindowCapture, true);
+  window.addEventListener("pointerout", handleLockedDismissalEventAtWindowCapture, true);
+  window.addEventListener("pointerleave", handleLockedDismissalEventAtWindowCapture, true);
+  window.addEventListener("mouseout", handleLockedDismissalEventAtWindowCapture, true);
+  window.addEventListener("mouseleave", handleLockedDismissalEventAtWindowCapture, true);
+  window.addEventListener("blur", handleLockedDismissalEventAtWindowCapture, true);
+  window.addEventListener("focusout", handleLockedDismissalEventAtWindowCapture, true);
   window.addEventListener("beforeunload", () => {
     teardownLocatePreview();
     teardownRemovalDomObserver();
+    clearAiShortcuts();
     stopListening();
   });
   document.addEventListener("DOMContentLoaded", () => {
     applyPersistedRemovalsFromState();
     applyAllRewritesFromState();
+    applyAiRecipesFromState();
     syncRemovalDomObserver();
     if (state.locateSignature && state.locateRequestId) {
       startLocatePreviewIfNeeded();

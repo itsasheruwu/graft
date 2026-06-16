@@ -10,12 +10,19 @@ export function TweakStatusDot({
   return (
     <span
       className={cn(
-        "size-2 shrink-0 rounded-full",
-        active ? "bg-graft-green" : "bg-muted-foreground/35",
+        "relative size-2 shrink-0 rounded-full bg-muted-foreground/35",
         className
       )}
       aria-hidden
       title={active ? "On" : "Off"}
-    />
+    >
+      <span
+        className="t-badge"
+        data-open={active ? "true" : "false"}
+        style={{ top: 0, right: 0 }}
+      >
+        <span className="t-badge-dot size-2 rounded-full bg-graft-green" />
+      </span>
+    </span>
   );
 }

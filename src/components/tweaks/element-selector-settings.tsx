@@ -5,6 +5,7 @@ import { Info, List } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useElementSelectorSettings } from "@/hooks/use-element-selector-settings";
+import { AnimatedStatusText } from "@/components/ui/transition-effects";
 
 type Variant = "popup" | "options";
 
@@ -96,16 +97,11 @@ export function ElementSelectorSettings({ variant }: { variant: Variant }) {
         </Button>
       </div>
 
-      <p
-        className={cn(
-          "min-h-[1rem]",
-          isPopup ? "text-xs" : "text-sm",
-          status?.isError ? "text-destructive" : "text-primary"
-        )}
-        aria-live="polite"
-      >
-        {status?.message ?? ""}
-      </p>
+      <AnimatedStatusText
+        message={status?.message}
+        isError={status?.isError}
+        className={isPopup ? "text-xs" : "text-sm"}
+      />
     </div>
   );
 }

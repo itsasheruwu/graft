@@ -2,18 +2,29 @@ const SYNC_DEFAULT_SETTINGS = {
   themeSyncerEnabled: true,
   themeSyncerYoutubeEnabled: true,
   themeSyncerBlockedDomains: [],
+  forceDarkModeEnabled: false,
+  forceDarkModeBlockedDomains: [],
+  soundBoosterEnabled: false,
+  soundBoosterGain: 1.5,
+  soundBoosterBlockedDomains: [],
   youtubeAutoTranslateEnabled: true,
   youtubeAutoTranslateTitlesEnabled: true,
   youtubeAutoTranslateDescriptionsEnabled: true,
   youtubeAutoTranslateDebugEnabled: false,
   youtubeAutoTranslateTargetMode: "auto",
   youtubeAutoTranslateTargetLanguage: "en",
+  graftAiRewriterEnabled: true,
+  assetFinderEnabled: true,
+  assetFinderHideBlankAssets: false,
   elementSelectorEnabled: false,
 };
 
 const LOCAL_DEFAULT_SETTINGS = {
   elementSelectorRemovedElementsByDomain: {},
   elementSelectorTextRewritesByDomain: {},
+  graftAiRecipesByDomain: {},
+  graftAiHelperPort: 27491,
+  graftAiHelperToken: "",
 };
 
 const REMOVALS_KEY = "elementSelectorRemovedElementsByDomain";
@@ -143,6 +154,22 @@ chrome.commands?.onCommand?.addListener((command) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "graft-ai-rewriter:generate") {
+    generateGraftAiRecipe(message)
+      .then((payload) => sendResponse(payload))
+      .catch((error) => {
+        sendResponse({
+          ok: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "AI rewrite request failed",
+        });
+      });
+
+    return true;
+  }
+
   if (message?.type === "youtube-auto-translate:log") {
     console.log("[Graft][YouTube Auto Translation]", message.event, {
       detail: message.detail,
@@ -166,6 +193,95 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return true;
 });
+
+async function generateGraftAiRecipe(message) {
+  const prompt = String(message.prompt || "").trim();
+  if (!prompt) {
+    return { ok: false, error: "Missing rewrite prompt" };
+  }
+
+  const helperConfig = await getLocalSettings({
+    graftAiHelperPort: LOCAL_DEFAULT_SETTINGS.graftAiHelperPort,
+    graftAiHelperToken: LOCAL_DEFAULT_SETTINGS.graftAiHelperToken,
+  });
+  const port = normalizeHelperPort(helperConfig.graftAiHelperPort);
+  const token = String(helperConfig.graftAiHelperToken || "").trim();
+
+  if (!token) {
+    return {
+      ok: false,
+      error: "Start graft-ai-helper and paste its local token in Graft settings.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 90_000);
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/rewrite`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        prompt,
+        context: message.context || {},
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return { ok: false, error: "Helper token was rejected." };
+      }
+      if (response.status === 429 || response.status === 503) {
+        return { ok: false, retryable: true, error: "Helper is busy. Try again in a moment." };
+      }
+      return {
+        ok: false,
+        error: `Helper request failed: ${response.status}`,
+      };
+    }
+
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object") {
+      return { ok: false, error: "Helper returned an invalid response." };
+    }
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return { ok: false, retryable: true, error: "AI rewrite timed out." };
+    }
+    return {
+      ok: false,
+      retryable: true,
+      error: "Could not reach graft-ai-helper on localhost.",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function getLocalSettings(defaults) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(defaults, (stored) => {
+      if (chrome.runtime.lastError) {
+        resolve(defaults);
+        return;
+      }
+      resolve({ ...defaults, ...stored });
+    });
+  });
+}
+
+function normalizeHelperPort(value) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    return LOCAL_DEFAULT_SETTINGS.graftAiHelperPort;
+  }
+  return port;
+}
 
 function enqueueTranslate(message) {
   return new Promise((resolve, reject) => {
