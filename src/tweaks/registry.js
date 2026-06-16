@@ -90,6 +90,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "themeSyncer",
       ui: {
+        category: "appearance",
         popupSection: "Theme Syncer",
         settingsKeys: [
           "themeSyncerEnabled",
@@ -121,6 +122,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "forceDarkMode",
       ui: {
+        category: "appearance",
         popupSection: "Force Dark Mode",
         settingsKeys: [
           "forceDarkModeEnabled",
@@ -157,6 +159,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "soundBooster",
       ui: {
+        category: "media",
         popupSection: "Sound Booster",
         settingsKeys: [
           "soundBoosterEnabled",
@@ -194,6 +197,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "elementSelector",
       ui: {
+        category: "page-tools",
         popupSection: "Element Selector",
         settingsKeys: ["elementSelectorEnabled"],
       },
@@ -227,6 +231,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "graftAiRewriter",
       ui: {
+        category: "customization",
         popupSection: "AI Rewriter",
         settingsKeys: [
           "graftAiRewriterEnabled",
@@ -258,6 +263,7 @@ const TWEAK_REGISTRY = Object.freeze({
       hostTargets: ["*"],
       optionsKeyPrefix: "assetFinder",
       ui: {
+        category: "media",
         popupSection: "Asset Finder",
         settingsKeys: ["assetFinderEnabled", "assetFinderHideBlankAssets"],
       },
@@ -291,6 +297,7 @@ const TWEAK_REGISTRY = Object.freeze({
       ],
       optionsKeyPrefix: "youtubeAutoTranslate",
       ui: {
+        category: "youtube",
         popupSection: "YouTube Auto Translation",
         settingsKeys: [
           "youtubeAutoTranslateEnabled",
