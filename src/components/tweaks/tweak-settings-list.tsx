@@ -7,7 +7,6 @@ import {
 import { TweakStatusDot } from "@/components/ui/tweak-status-dot";
 import {
   groupTweaksByCategory,
-  listCategoryIds,
   type TweakUiVariant,
 } from "@/lib/tweak-catalog";
 import type { TweakBadgeState } from "@/hooks/use-tweak-status-badges";
@@ -27,12 +26,11 @@ export function TweakSettingsList({
   demo = false,
 }: TweakSettingsListProps) {
   const groups = groupTweaksByCategory();
-  const categoryIds = listCategoryIds();
 
   return (
     <Accordion
       type="multiple"
-      defaultValue={categoryIds}
+      defaultValue={[]}
       className="w-full space-y-1"
     >
       {groups.map((group) => (
