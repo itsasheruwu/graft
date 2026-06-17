@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupTweaksByCategory,
+  listCategoryIds,
   listTweakIds,
   TWEAK_CATALOG,
 } from "@/lib/tweak-catalog";
@@ -44,6 +45,16 @@ describe("groupTweaksByCategory", () => {
       "sound-booster",
       "element-selector",
       "youtube-auto-translate",
+    ]);
+  });
+
+  it("lists category ids in grouped order", () => {
+    expect(listCategoryIds()).toEqual([
+      "appearance",
+      "customization",
+      "media",
+      "page-tools",
+      "youtube",
     ]);
   });
 

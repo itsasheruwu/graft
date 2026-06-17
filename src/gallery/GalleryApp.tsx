@@ -43,6 +43,9 @@ import {
   useToast,
 } from "@/components/primitives";
 import { Separator } from "@/components/ui/separator";
+import { TweakSettingsList } from "@/components/tweaks/tweak-settings-list";
+import { groupTweaksByCategory } from "@/lib/tweak-catalog";
+import type { TweakBadgeState } from "@/hooks/use-tweak-status-badges";
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
@@ -50,12 +53,25 @@ const SECTIONS = [
   { id: "forms", label: "Inputs & forms" },
   { id: "feedback", label: "Feedback" },
   { id: "layout", label: "Layout" },
+  { id: "tweak-categories", label: "Tweak categories" },
   { id: "sub-options", label: "Sub-options" },
   { id: "skeletons", label: "Skeletons" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 type PreviewMode = "options" | "popup" | "sub-options";
+
+const GALLERY_TWEAK_BADGES: TweakBadgeState = {
+  themeSyncer: true,
+  forceDarkMode: false,
+  soundBooster: false,
+  youtubeAutoTranslate: true,
+  graftAiRewriter: true,
+  assetFinder: true,
+  elementSelector: false,
+};
+
+const TWEAK_GROUPS = groupTweaksByCategory();
 
 function previewScale(preview: PreviewMode) {
   const isSubOptions = preview === "sub-options";
@@ -240,15 +256,7 @@ function GalleryContent({ preview }: { preview: PreviewMode }) {
   const [checkboxOn, setCheckboxOn] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("youtube.com");
 
-  const listItems = [
-    "Theme Syncer",
-    "Element Selector",
-    "YouTube Auto Translation",
-    "Asset Finder",
-    "Graft AI Rewriter",
-    "Hidden elements",
-    "More tweaks coming soon",
-  ];
+  const tweakListAccordionType = preview === "popup" ? "single" : "multiple";
 
   return (
     <div className={scale.sectionGap}>
@@ -518,19 +526,33 @@ function GalleryContent({ preview }: { preview: PreviewMode }) {
                   scale.isSubOptions ? "h-28" : "h-36"
                 )}
               >
-                <ul className="divide-y divide-border/70">
-                  {listItems.map((item) => (
-                    <li
-                      key={item}
-                      className={cn(
-                        "px-3 py-2 hover:bg-muted/50",
-                        scale.isSubOptions ? "text-xs" : "text-sm"
-                      )}
-                    >
-                      {item}
-                    </li>
+                <div className="divide-y divide-border/70">
+                  {TWEAK_GROUPS.map((group) => (
+                    <section key={group.id}>
+                      <p
+                        className={cn(
+                          "px-3 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase",
+                          scale.isSubOptions ? "text-[9px]" : undefined
+                        )}
+                      >
+                        {group.label}
+                      </p>
+                      <ul>
+                        {group.tweaks.map((tweak) => (
+                          <li
+                            key={tweak.id}
+                            className={cn(
+                              "px-3 py-2 hover:bg-muted/50",
+                              scale.isSubOptions ? "text-xs" : "text-sm"
+                            )}
+                          >
+                            {tweak.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               </ScrollList>
             </CardContent>
           </Card>
@@ -552,15 +574,22 @@ function GalleryContent({ preview }: { preview: PreviewMode }) {
                   </BottomSheetDescription>
                 </BottomSheetHeader>
                 <BottomSheetBody className="space-y-2">
-                  {listItems.slice(0, 4).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      className="flex w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-muted/60"
-                    >
-                      {item}
-                    </button>
-                  ))}
+                  {TWEAK_GROUPS.flatMap((group) =>
+                    group.tweaks.slice(0, 1).map((tweak) => (
+                      <button
+                        key={tweak.id}
+                        type="button"
+                        className="flex w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-muted/60"
+                      >
+                        <span className="flex min-w-0 flex-col items-start gap-0.5">
+                          <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                            {group.label}
+                          </span>
+                          <span>{tweak.name}</span>
+                        </span>
+                      </button>
+                    ))
+                  )}
                 </BottomSheetBody>
                 <BottomSheetFooter>
                   <Button type="button" variant="ghost" size="sm">
@@ -578,6 +607,30 @@ function GalleryContent({ preview }: { preview: PreviewMode }) {
                 ? " — nested inside popup accordion (~244px)."
                 : " — sheets respect popup width on larger viewports."}
             </p>
+          </CardContent>
+        </Card>
+      </GallerySection>
+
+      <GallerySection
+        id="tweak-categories"
+        title="Tweak categories"
+        description="Collapsible topic groups with A–Z tweak rows — used in popup and options."
+        compact={scale.isSubOptions}
+      >
+        <Card className="overflow-visible">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Grouped tweak list</CardTitle>
+            <CardDescription className="text-xs">
+              Categories collapse independently; tweak rows inside stay sorted A–Z.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TweakSettingsList
+              variant={preview === "options" ? "options" : "popup"}
+              badges={GALLERY_TWEAK_BADGES}
+              accordionType={tweakListAccordionType}
+              demo
+            />
           </CardContent>
         </Card>
       </GallerySection>

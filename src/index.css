@@ -131,6 +131,8 @@
   --icon-swap-blur: 2px;
   --icon-swap-start-scale: 0.25;
   --icon-swap-ease: ease-in-out;
+  --accordion-dur: 180ms;
+  --accordion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --clear-dur: 1000ms;
   --clear-out-dur: 400ms;
   --clear-in-dur: 400ms;
@@ -345,6 +347,8 @@
   .t-icon-swap {
     position: relative;
     display: inline-grid;
+    place-items: center;
+    overflow: visible;
   }
   .t-icon-swap .t-icon {
     grid-area: 1 / 1;
@@ -366,19 +370,38 @@
     filter: blur(var(--icon-swap-blur));
     transform: scale(var(--icon-swap-start-scale));
   }
+
+  [data-slot="accordion-content"] {
+    animation-duration: var(--accordion-dur);
+    animation-timing-function: var(--accordion-ease);
+    animation-fill-mode: none;
+  }
+
+  .accordion-height-sync {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-slot="accordion-trigger"] .t-icon-swap .t-icon {
+    transition: opacity 140ms ease;
+    will-change: opacity;
+    filter: none;
+    transform: none;
+  }
+
   [data-slot="accordion-trigger"][data-state="open"]
     .t-icon-swap
     .t-icon[data-icon="a"] {
     opacity: 0;
-    filter: blur(var(--icon-swap-blur));
-    transform: scale(var(--icon-swap-start-scale));
+    filter: none;
+    transform: none;
   }
   [data-slot="accordion-trigger"][data-state="open"]
     .t-icon-swap
     .t-icon[data-icon="b"] {
     opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
+    filter: none;
+    transform: none;
   }
 
   .t-clear {

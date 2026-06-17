@@ -20,7 +20,7 @@ export function OptionsApp() {
         description="Control how Graft tweaks behave across your browser."
       />
 
-      <Card className="gap-0 border-border/80 shadow-sm">
+      <Card className="gap-0 overflow-visible border-border/80 shadow-sm">
         <CardHeader className="space-y-1 pb-3">
           <CardTitle className="text-base font-medium">Tweaks</CardTitle>
           <CardDescription className="text-sm leading-relaxed">

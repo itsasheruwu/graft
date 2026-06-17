@@ -157,3 +157,9 @@ export function listTweakIds(
     group.tweaks.map((tweak) => tweak.id)
   );
 }
+
+export function listCategoryIds(
+  entries: TweakCatalogEntry[] = TWEAK_CATALOG
+): TweakCategoryId[] {
+  return groupTweaksByCategory(entries).map((group) => group.id);
+}
