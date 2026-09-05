@@ -35,7 +35,7 @@
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
-    <header class="header wrap">
+    <header class="header wrap" aria-label="Graft website">
       <a class="brand" href="#" aria-label="Graft home"
         ><img src="assets/graft.png" alt="" width="36" height="36" />Graft</a
       >
@@ -87,7 +87,7 @@
             <span
               ><span class="dot"></span> YOUR BROWSER, WITH A FEW GOOD
               CHANGES</span
-            ><span>INTERACTIVE PREVIEW ↓</span>
+            ><span>CURRENT GRAFT UI · DEMO ↓</span>
           </div>
           <div class="browser" id="preview-browser">
             <div class="browser-bar">
@@ -161,7 +161,10 @@
                       <i></i><i></i><i></i>
                     </div>
                   </article>
-                  <aside class="clutter" id="clutter">
+                  <aside class="clutter" id="clutter" tabindex="-1">
+                    <button id="hide-demo-element" hidden>
+                      Hide this element
+                    </button>
                     <span>SPONSORED</span>
                     <div class="ad-shape">More.<br />More.<br />More.</div>
                     <p>One more thing<br />you didn't come for.</p>
@@ -179,66 +182,23 @@
                 </div>
               </div>
               <aside
-                class="graft-panel"
-                aria-label="Interactive Graft demo controls"
+                class="actual-popup-host"
+                aria-label="Graft's actual interactive popup"
               >
-                <div class="panel-brand">
-                  <img
-                    src="assets/graft.png"
-                    width="29"
-                    height="29"
-                    alt=""
-                  />Graft <span>PREVIEW</span>
-                </div>
-                <p>Small changes. Your call.</p>
-                <div class="panel-category">APPEARANCE</div>
-                <div class="control-row">
-                  <span
-                    ><strong>Theme Syncer</strong
-                    ><small>A softer side of dark.</small></span
-                  ><button
-                    class="toggle"
-                    id="theme-toggle"
-                    role="switch"
-                    aria-checked="false"
-                    aria-label="Preview dark theme"
-                  ></button>
-                </div>
-                <div class="panel-category">PAGE TOOLS</div>
-                <div class="control-row">
-                  <span
-                    ><strong>Element Selector</strong
-                    ><small>Keep the good parts.</small></span
-                  ><button
-                    class="toggle"
-                    id="hide-toggle"
-                    role="switch"
-                    aria-checked="false"
-                    aria-label="Preview hiding the sponsored panel"
-                  ></button>
-                </div>
-                <div class="panel-category">MEDIA</div>
-                <div class="control-row">
-                  <span
-                    ><strong>Sound Booster</strong
-                    ><small>Give quiet audio a lift.</small></span
-                  ><button
-                    class="toggle"
-                    id="sound-toggle"
-                    role="switch"
-                    aria-checked="false"
-                    aria-label="Preview sound boost"
-                  ></button>
-                </div>
-                <div class="panel-foot">
-                  <span class="dot"></span> Try a toggle. See the difference.
-                </div>
+                <iframe
+                  id="graft-ui-preview"
+                  class="actual-popup-frame"
+                  src="preview/index.html"
+                  title="Graft popup — interactive demo"
+                  sandbox="allow-scripts allow-same-origin allow-downloads"
+                ></iframe>
               </aside>
             </div>
           </div>
           <div class="demo-note">
             <span id="demo-status" role="status"
-              >A familiar page. A few possibilities.</span
+              >Actual popup, demo data. Start with Appearance → Force Dark
+              Mode.</span
             ><button id="reset-demo">
               Reset preview <span aria-hidden="true">↺</span>
             </button>
@@ -593,6 +553,25 @@ npm run build</code></pre>
           >
         </div>
       </section>
+      <dialog
+        id="graft-preview-dialog"
+        aria-labelledby="graft-preview-dialog-title"
+      >
+        <div class="preview-dialog-bar">
+          <span id="graft-preview-dialog-title">Graft settings · Demo</span
+          ><button
+            id="close-preview-dialog"
+            aria-label="Close Graft settings preview"
+          >
+            Close ×
+          </button>
+        </div>
+        <iframe
+          id="graft-detail-preview"
+          title="Graft settings — interactive demo"
+          sandbox="allow-scripts allow-same-origin allow-downloads"
+        ></iframe>
+      </dialog>
     </main>
     <footer class="wrap">
       <a class="brand" href="#"
