@@ -8,6 +8,10 @@ export type TweakBadgeState = {
   graftAiRewriter: boolean;
   assetFinder: boolean;
   elementSelector: boolean;
+  scrollToTop: boolean;
+  wikipediaEnhancements: boolean;
+  xQuietFeed: boolean;
+  robloxPlayerWatcher: boolean;
 };
 
 const SYNC_KEYS = {
@@ -18,6 +22,10 @@ const SYNC_KEYS = {
   graftAiRewriterEnabled: true,
   assetFinderEnabled: true,
   elementSelectorEnabled: false,
+  scrollToTopEnabled: false,
+  wikipediaEnhancementsEnabled: false,
+  xQuietFeedEnabled: false,
+  robloxPlayerWatcherEnabled: false,
 } as const;
 
 export function useTweakStatusBadges() {
@@ -29,6 +37,10 @@ export function useTweakStatusBadges() {
     graftAiRewriter: true,
     assetFinder: true,
     elementSelector: false,
+    scrollToTop: false,
+    wikipediaEnhancements: false,
+    xQuietFeed: false,
+    robloxPlayerWatcher: false,
   });
 
   useEffect(() => {
@@ -42,6 +54,10 @@ export function useTweakStatusBadges() {
           graftAiRewriter: Boolean(stored.graftAiRewriterEnabled),
           assetFinder: Boolean(stored.assetFinderEnabled),
           elementSelector: Boolean(stored.elementSelectorEnabled),
+          scrollToTop: Boolean(stored.scrollToTopEnabled),
+          wikipediaEnhancements: Boolean(stored.wikipediaEnhancementsEnabled),
+          xQuietFeed: Boolean(stored.xQuietFeedEnabled),
+          robloxPlayerWatcher: Boolean(stored.robloxPlayerWatcherEnabled),
         });
       });
     };
@@ -83,6 +99,22 @@ export function useTweakStatusBadges() {
           "elementSelectorEnabled" in changes
             ? Boolean(changes.elementSelectorEnabled.newValue)
             : prev.elementSelector,
+        scrollToTop:
+          "scrollToTopEnabled" in changes
+            ? Boolean(changes.scrollToTopEnabled.newValue)
+            : prev.scrollToTop,
+        wikipediaEnhancements:
+          "wikipediaEnhancementsEnabled" in changes
+            ? Boolean(changes.wikipediaEnhancementsEnabled.newValue)
+            : prev.wikipediaEnhancements,
+        xQuietFeed:
+          "xQuietFeedEnabled" in changes
+            ? Boolean(changes.xQuietFeedEnabled.newValue)
+            : prev.xQuietFeed,
+        robloxPlayerWatcher:
+          "robloxPlayerWatcherEnabled" in changes
+            ? Boolean(changes.robloxPlayerWatcherEnabled.newValue)
+            : prev.robloxPlayerWatcher,
       }));
     };
     chrome.storage.onChanged.addListener(onChange);

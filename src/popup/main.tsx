@@ -6,13 +6,19 @@ import { syncExtensionThemeClass } from "@/lib/sync-extension-theme";
 import "@/index.css";
 
 syncExtensionThemeClass();
+document.documentElement.setAttribute("data-graft-popup", "");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <div className="box-border w-[300px] bg-background p-3 text-foreground antialiased">
-      <ErrorBoundary title="Graft popup error">
-        <PopupApp />
-      </ErrorBoundary>
+    <div
+      data-graft-menu-surface=""
+      className="relative box-border w-[var(--graft-popup-width)] max-w-[var(--graft-popup-width)] overflow-hidden bg-background text-foreground antialiased"
+    >
+      <div className="max-h-[600px] overflow-x-hidden overflow-y-auto p-3">
+        <ErrorBoundary title="Graft popup error">
+          <PopupApp />
+        </ErrorBoundary>
+      </div>
     </div>
   </StrictMode>
 );

@@ -93,105 +93,17 @@ function AccordionTrigger({
 function AccordionContent({
   className,
   children,
-  watchNestedResize = false,
   ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Content> & {
-  watchNestedResize?: boolean
-}) {
-  const innerRef = React.useRef<HTMLDivElement>(null)
-
-  React.useLayoutEffect(() => {
-    if (!watchNestedResize) {
-      return
-    }
-
-    const inner = innerRef.current
-    if (!inner) {
-      return
-    }
-
-    const content = inner.closest(
-      '[data-slot="accordion-content"]'
-    ) as HTMLElement | null
-    if (!content) {
-      return
-    }
-
-    let frame = 0
-    let lastSyncedHeight = -1
-    let skipNextResize = true
-
-    const clearSyncedHeight = () => {
-      content.style.removeProperty("--radix-collapsible-content-height")
-      content.style.removeProperty("--radix-accordion-content-height")
-      content.classList.remove("accordion-height-sync")
-      lastSyncedHeight = -1
-      skipNextResize = true
-    }
-
-    const syncHeightInstant = () => {
-      if (content.dataset.state !== "open") {
-        return
-      }
-
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => {
-        const nextHeight = inner.scrollHeight
-        if (nextHeight === lastSyncedHeight) {
-          return
-        }
-
-        lastSyncedHeight = nextHeight
-        const next = `${nextHeight}px`
-
-        content.classList.add("accordion-height-sync")
-        content.style.setProperty("--radix-collapsible-content-height", next)
-        requestAnimationFrame(() => {
-          content.classList.remove("accordion-height-sync")
-        })
-      })
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (skipNextResize) {
-        skipNextResize = false
-        return
-      }
-
-      syncHeightInstant()
-    })
-    resizeObserver.observe(inner)
-
-    const stateObserver = new MutationObserver(() => {
-      if (content.dataset.state === "closed") {
-        clearSyncedHeight()
-        return
-      }
-
-      // Let Radix measure and animate on open — don't override height here.
-    })
-    stateObserver.observe(content, {
-      attributes: true,
-      attributeFilter: ["data-state"],
-    })
-
-    return () => {
-      cancelAnimationFrame(frame)
-      resizeObserver.disconnect()
-      stateObserver.disconnect()
-    }
-  }, [children, watchNestedResize])
-
+}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="overflow-hidden text-sm data-open:animate-accordion-down data-closed:animate-accordion-up"
+      className="overflow-hidden text-sm"
       {...props}
     >
       <div
-        ref={innerRef}
         className={cn(
-          "pt-1 pb-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
+          "min-h-0 min-w-0 overflow-hidden pt-1 pb-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
           className
         )}
       >

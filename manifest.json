@@ -4,7 +4,8 @@
   "description": "A focused kit for grafting small fixes onto the web.",
   "version": "1.0.0",
   "minimum_chrome_version": "111",
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage", "tabs", "nativeMessaging", "alarms"],
+  "optional_permissions": ["notifications"],
   "host_permissions": [
     "https://youtube.com/*",
     "https://www.youtube.com/*",
@@ -12,6 +13,9 @@
     "https://music.youtube.com/*",
     "https://*.youtube.com/*",
     "https://translate.googleapis.com/*",
+    "https://roblox.com/*",
+    "https://www.roblox.com/*",
+    "https://*.roblox.com/*",
     "http://127.0.0.1/*"
   ],
   "background": {

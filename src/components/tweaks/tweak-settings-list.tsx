@@ -53,12 +53,11 @@ export function TweakSettingsList({
               </span>
             </span>
           </AccordionTrigger>
-          <AccordionContent className="pb-1" watchNestedResize>
+          <AccordionContent className="pb-1">
             <Accordion
-              type={accordionType}
               {...(accordionType === "single"
-                ? { collapsible: true }
-                : { defaultValue: group.tweaks.map((tweak) => tweak.id) })}
+                ? { type: "single" as const, collapsible: true }
+                : { type: "multiple" as const, defaultValue: group.tweaks.map((tweak) => tweak.id) })}
               className="w-full"
             >
               {group.tweaks.map((tweak) => {
@@ -74,13 +73,15 @@ export function TweakSettingsList({
                       iconVariant="tweak"
                       className="gap-2.5 py-2.5 hover:no-underline"
                     >
-                      <TweakStatusDot active={badges[tweak.badgeKey]} />
-                      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left normal-case">
-                        <span className="text-sm font-medium leading-tight text-foreground">
-                          {tweak.name}
-                        </span>
-                        <span className="text-xs font-normal leading-snug text-muted-foreground">
-                          {tweak.taglines[variant]}
+                      <span className="flex min-w-0 flex-1 items-center gap-2.5 text-left normal-case">
+                        <TweakStatusDot active={badges[tweak.badgeKey]} />
+                        <span className="flex min-w-0 flex-col items-start gap-0.5">
+                          <span className="text-sm font-medium leading-tight text-foreground">
+                            {tweak.name}
+                          </span>
+                          <span className="text-xs font-normal leading-snug text-muted-foreground">
+                            {tweak.taglines[variant]}
+                          </span>
                         </span>
                       </span>
                     </AccordionTrigger>

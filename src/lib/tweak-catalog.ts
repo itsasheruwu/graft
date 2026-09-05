@@ -4,9 +4,13 @@ import { AssetFinderSettings } from "@/components/tweaks/asset-finder-settings";
 import { ElementSelectorSettings } from "@/components/tweaks/element-selector-settings";
 import { ForceDarkModeSettings } from "@/components/tweaks/force-dark-mode-settings";
 import { GraftAiRewriterSettings } from "@/components/tweaks/graft-ai-rewriter-settings";
+import { RobloxPlayerWatcherSettings } from "@/components/tweaks/roblox-player-watcher-settings";
+import { ScrollToTopSettings } from "@/components/tweaks/scroll-to-top-settings";
 import { SoundBoosterSettings } from "@/components/tweaks/sound-booster-settings";
 import { ThemeSyncerSettings } from "@/components/tweaks/theme-syncer-settings";
 import { YoutubeAutoTranslateSettings } from "@/components/tweaks/youtube-auto-translate-settings";
+import { WikipediaEnhancementsSettings } from "@/components/tweaks/wikipedia-enhancements-settings";
+import { XQuietFeedSettings } from "@/components/tweaks/x-quiet-feed-settings";
 import type { TweakBadgeState } from "@/hooks/use-tweak-status-badges";
 
 export type TweakUiVariant = "popup" | "options";
@@ -16,6 +20,9 @@ export type TweakCategoryId =
   | "customization"
   | "media"
   | "page-tools"
+  | "roblox"
+  | "wikipedia"
+  | "x"
   | "youtube";
 
 export const TWEAK_CATEGORY_LABELS: Record<TweakCategoryId, string> = {
@@ -23,6 +30,9 @@ export const TWEAK_CATEGORY_LABELS: Record<TweakCategoryId, string> = {
   customization: "Customization",
   media: "Media",
   "page-tools": "Page tools",
+  roblox: "Roblox",
+  wikipedia: "Wikipedia",
+  x: "X",
   youtube: "YouTube",
 };
 
@@ -103,6 +113,50 @@ export const TWEAK_CATALOG: TweakCatalogEntry[] = [
       options: "Hide and inspect page elements with hover actions",
     },
     Settings: ElementSelectorSettings,
+  },
+  {
+    id: "scroll-to-top",
+    name: "Scroll to Top",
+    category: "page-tools",
+    badgeKey: "scrollToTop",
+    taglines: {
+      popup: "Jump back to the top of long pages",
+      options: "Floating button that scrolls long pages back to the top",
+    },
+    Settings: ScrollToTopSettings,
+  },
+  {
+    id: "roblox-player-watcher",
+    name: "Roblox Player Watcher",
+    category: "roblox",
+    badgeKey: "robloxPlayerWatcher",
+    taglines: {
+      popup: "Notify when watched players change status",
+      options: "Whitelist Roblox players and get online, offline, and join alerts",
+    },
+    Settings: RobloxPlayerWatcherSettings,
+  },
+  {
+    id: "x-quiet-feed",
+    name: "X Quiet Feed",
+    category: "x",
+    badgeKey: "xQuietFeed",
+    taglines: {
+      popup: "Hide promotions and recommendation clutter",
+      options: "Keep X timelines focused without changing posts or account controls",
+    },
+    Settings: XQuietFeedSettings,
+  },
+  {
+    id: "wikipedia-enhancements",
+    name: "Wikipedia Enhancements",
+    category: "wikipedia",
+    badgeKey: "wikipediaEnhancements",
+    taglines: {
+      popup: "Make Wikipedia articles easier to read",
+      options: "Tune article layout and navigation across Wikipedia",
+    },
+    Settings: WikipediaEnhancementsSettings,
   },
   {
     id: "youtube-auto-translate",

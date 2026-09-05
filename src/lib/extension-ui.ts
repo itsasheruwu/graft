@@ -7,6 +7,20 @@ export const EXTENSION_GALLERY_MAX_WIDTH = 960;
 /** Root attribute used to scope styles when UI is injected into host pages. */
 export const GRAFT_UI_ROOT_ATTR = "data-graft-ui";
 
+/** Host for in-menu overlays (blurred prompts inside popup/options shells). */
+export const GRAFT_MENU_SURFACE_ATTR = "data-graft-menu-surface";
+
+export function findGraftMenuSurface(
+  from: ParentNode | null | undefined = typeof document !== "undefined"
+    ? document
+    : null
+) {
+  if (!from || typeof from.querySelector !== "function") {
+    return null;
+  }
+  return from.querySelector<HTMLElement>(`[${GRAFT_MENU_SURFACE_ATTR}]`);
+}
+
 export type ExtensionSurfaceVariant =
   | "popup"
   | "sub-options"

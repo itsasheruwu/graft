@@ -214,6 +214,18 @@
   html {
     @apply font-sans;
   }
+
+  /* Chrome sizes the toolbar popup to document scrollWidth/Height. Keep that
+     locked so accordion/text intrinsic sizing cannot stretch the window. */
+  html[data-graft-popup],
+  html[data-graft-popup] body {
+    width: var(--graft-popup-width);
+    max-width: var(--graft-popup-width);
+    max-height: 600px;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 }
 
 @layer utilities {
@@ -372,14 +384,40 @@
   }
 
   [data-slot="accordion-content"] {
-    animation-duration: var(--accordion-dur);
-    animation-timing-function: var(--accordion-ease);
-    animation-fill-mode: none;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 
-  .accordion-height-sync {
-    animation: none !important;
-    transition: none !important;
+  [data-slot="accordion-content"][data-state="open"] {
+    animation: graft-accordion-down var(--accordion-dur) var(--accordion-ease);
+  }
+
+  [data-slot="accordion-content"][data-state="closed"] {
+    animation: graft-accordion-up var(--accordion-dur) var(--accordion-ease)
+      forwards;
+  }
+
+  [data-slot="accordion-content"] > * {
+    min-width: 0;
+  }
+
+  @keyframes graft-accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes graft-accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
   }
 
   [data-slot="accordion-trigger"] .t-icon-swap .t-icon {

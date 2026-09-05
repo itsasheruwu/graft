@@ -69,6 +69,10 @@ const GALLERY_TWEAK_BADGES: TweakBadgeState = {
   graftAiRewriter: true,
   assetFinder: true,
   elementSelector: false,
+  scrollToTop: false,
+  wikipediaEnhancements: false,
+  xQuietFeed: false,
+  robloxPlayerWatcher: false,
 };
 
 const TWEAK_GROUPS = groupTweaksByCategory();

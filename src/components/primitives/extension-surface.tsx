@@ -18,9 +18,9 @@ function surfaceWidthClass(variant: ExtensionSurfaceVariant) {
   switch (variant) {
     case "popup":
     case "panel":
-      return "w-[300px] max-w-[300px]";
+      return "w-[var(--graft-popup-width)] max-w-[var(--graft-popup-width)] overflow-x-hidden";
     case "sub-options":
-      return "w-[244px] max-w-[244px]";
+      return "w-[var(--graft-sub-option-width)] max-w-[var(--graft-sub-option-width)] min-w-0";
     case "options":
       return "mx-auto w-full max-w-[42rem]";
     case "content-script":

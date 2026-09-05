@@ -7,7 +7,7 @@ Thanks for helping improve Graft.
 ```bash
 git clone https://github.com/itsasheruwu/graft.git
 cd graft
-npm install
+npm ci
 npm run build
 ```
 
@@ -41,3 +41,19 @@ See [`AGENTS.md`](AGENTS.md) for architecture notes and conventions.
 ## Reporting issues
 
 Use the GitHub issue templates and include browser version, Graft version, and steps to reproduce.
+
+## Native Mac app
+
+Use macOS 15+ and Xcode 26+ (Swift 6.2). Native setup, architecture, and current limitations are in [`macos/README.md`](macos/README.md).
+
+```bash
+swift test --package-path macos
+node --test macos/Tests/SpotifyBridgeResourceTests.mjs
+./script/build_and_run.sh --verify
+```
+
+The last command builds and opens the app. Do not commit `node_modules`, `dist`, Swift build caches, signing profiles, or local application state.
+
+## Website
+
+Edit `website/` and serve it with a static HTTP server. After browser UI changes, run `node tools/build-site-preview.mjs` to regenerate the actual-UI demo. See [`website/README.md`](website/README.md).

@@ -1830,5 +1830,156 @@ footer > div {
     animation: none;
   }
 }
-.actual-popup-host{border:0;box-shadow:-1px 0 0 #dbe1d5}
-@media(max-width:740px){.actual-popup-host{border:0;box-shadow:0 0 0 1px #dbe1d5}}
+.actual-popup-host {
+  border: 0;
+  box-shadow: -1px 0 0 #dbe1d5;
+}
+@media (max-width: 740px) {
+  .actual-popup-host {
+    border: 0;
+    box-shadow: 0 0 0 1px #dbe1d5;
+  }
+}
+
+/* Product-first hierarchy: direct headings, fewer decorative labels, readable metadata. */
+.hero {
+  padding-top: 56px;
+}
+.hero h1 {
+  font-size: clamp(44px, 6.8vw, 88px);
+  letter-spacing: -0.055em;
+  line-height: 1.06;
+}
+.hero h1 > span {
+  color: #52723f;
+}
+.hero-bottom {
+  gap: 32px;
+  align-items: center;
+}
+.hero-bottom p {
+  max-width: 680px;
+}
+.hero-action {
+  flex-shrink: 0;
+}
+.hero-action > span {
+  font-size: 12px;
+}
+.stage-caption {
+  font-size: 10px;
+  letter-spacing: 0.8px;
+}
+.demo-note,
+.demo-note button {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.demo-note button {
+  padding: 8px 0;
+}
+.toolkit,
+.install {
+  padding-top: 88px;
+}
+.section-heading h2 {
+  max-width: 650px;
+  font-size: clamp(32px, 4vw, 48px);
+}
+.section-heading > p,
+.feature p,
+.principles p {
+  font-size: 14px;
+}
+.feature-label {
+  font-size: 11px;
+}
+.catalog-header > span {
+  font-size: 10px;
+}
+.philosophy h2 {
+  font-size: clamp(32px, 4vw, 48px);
+  letter-spacing: -0.04em;
+}
+.mac-summary {
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 370px;
+  color: #59675c;
+}
+.mac-install {
+  border-top: 1px solid var(--line);
+  padding-top: 48px;
+  margin-top: 56px;
+}
+.install-intro p,
+.step p,
+.faq details p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.code-block pre {
+  font-size: 12px;
+  overflow-x: auto;
+}
+.faq {
+  padding-bottom: 72px;
+}
+.button:active {
+  transform: translateY(0);
+  background: #17281e;
+}
+@media (max-width: 740px) {
+  .hero-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(38px, 7.8vw, 58px);
+  }
+  .stage-caption {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 9px;
+  }
+  .hero-action {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .hero-action > span {
+    max-width: none;
+  }
+  .demo-note {
+    align-items: flex-start;
+  }
+  .code-block pre {
+    font-size: 11px;
+  }
+  .toolkit,
+  .install {
+    padding-top: 64px;
+  }
+}
+
+.hero > .eyebrow,
+.hero > h1,
+.hero-bottom {
+  animation: none;
+}
+.install-choice {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 36px;
+  flex-wrap: wrap;
+}
+.install-choice a {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.install-choice a:hover {
+  background: #e8eddf;
+}

@@ -23,6 +23,14 @@ const YOUTUBE_MATCH_PATTERNS = [
   "https://*.youtube.com/*",
 ];
 
+const X_MATCH_PATTERNS = ["https://x.com/*", "https://www.x.com/*"];
+
+const ROBLOX_MATCH_PATTERNS = [
+  "https://roblox.com/*",
+  "https://www.roblox.com/*",
+  "https://*.roblox.com/*",
+];
+
 const TWEAK_REGISTRY = Object.freeze({
   defaultExcludeMatches: DEFAULT_EXCLUDE_MATCHES,
   globalMatchPatterns: GLOBAL_MATCH_PATTERNS,
@@ -46,9 +54,30 @@ const TWEAK_REGISTRY = Object.freeze({
       graftAiRewriterEnabled: true,
       assetFinderEnabled: true,
       elementSelectorEnabled: false,
+      scrollToTopEnabled: false,
+      scrollToTopBlockedDomains: [],
+      wikipediaEnhancementsEnabled: false,
+      wikipediaReadingWidthEnabled: false,
+      wikipediaReadingWidthPreset: "comfortable",
+      wikipediaNavigationCleanupEnabled: false,
+      wikipediaCollapseReferencesEnabled: false,
+      wikipediaFloatingTocEnabled: false,
+      wikipediaSearchHighlightEnabled: false,
+      wikipediaHideDonationBannersEnabled: false,
+      xQuietFeedEnabled: false,
+      robloxPlayerWatcherEnabled: false,
+      robloxPlayerWatcherNotifyOnline: true,
+      robloxPlayerWatcherNotifyOffline: true,
+      robloxPlayerWatcherNotifyJoinGame: true,
+      robloxPlayerWatcherShowExactGame: false,
+      robloxPlayerWatcherAntiSpamEnabled: true,
+      robloxPlayerWatcherWhitelist: [],
     }),
     localDefaults: Object.freeze({
       elementSelectorRemovedElementsByDomain: {},
+      robloxPlayerWatcherLastPresenceByUserId: {},
+      robloxPlayerWatcherResolvedIdsByEntry: {},
+      robloxPlayerWatcherGameNamesByUniverseId: {},
     }),
   }),
   commands: Object.freeze({
@@ -200,6 +229,128 @@ const TWEAK_REGISTRY = Object.freeze({
         category: "page-tools",
         popupSection: "Element Selector",
         settingsKeys: ["elementSelectorEnabled"],
+      },
+    },
+    {
+      id: "scroll-to-top",
+      name: "Scroll to Top",
+      description:
+        "Show a floating button that quickly scrolls long pages back to the top.",
+      matchPatterns: GLOBAL_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "scroll-to-top-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "scroll-to-top-content",
+          path: "src/tweaks/scroll-to-top/content.js",
+          world: "ISOLATED",
+          runAt: "document_idle",
+        },
+      ],
+      hostTargets: ["*"],
+      optionsKeyPrefix: "scrollToTop",
+      ui: {
+        category: "page-tools",
+        popupSection: "Scroll to Top",
+        settingsKeys: [
+          "scrollToTopEnabled",
+          "scrollToTopBlockedDomains",
+        ],
+      },
+    },
+    {
+      id: "x-quiet-feed",
+      name: "X Quiet Feed",
+      description:
+        "Hide promoted posts and recommendation modules from X without changing your timeline or account controls.",
+      matchPatterns: X_MATCH_PATTERNS,
+      entrypoints: [
+        {
+          id: "x-quiet-feed-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "x-quiet-feed-content",
+          path: "src/tweaks/x-quiet-feed/content.js",
+          world: "ISOLATED",
+          runAt: "document_idle",
+        },
+      ],
+      hostTargets: ["x.com", "www.x.com"],
+      optionsKeyPrefix: "xQuietFeed",
+      ui: {
+        category: "x",
+        popupSection: "X Quiet Feed",
+        settingsKeys: ["xQuietFeedEnabled"],
+      },
+    },
+    {
+      id: "roblox-player-watcher",
+      name: "Roblox Player Watcher",
+      description:
+        "Notify when whitelisted Roblox players come online, go offline, or join a game.",
+      matchPatterns: ROBLOX_MATCH_PATTERNS,
+      entrypoints: [],
+      hostTargets: ["www.roblox.com", "roblox.com", "*.roblox.com"],
+      optionsKeyPrefix: "robloxPlayerWatcher",
+      ui: {
+        category: "roblox",
+        popupSection: "Roblox Player Watcher",
+        settingsKeys: [
+          "robloxPlayerWatcherEnabled",
+          "robloxPlayerWatcherNotifyOnline",
+          "robloxPlayerWatcherNotifyOffline",
+          "robloxPlayerWatcherNotifyJoinGame",
+          "robloxPlayerWatcherShowExactGame",
+          "robloxPlayerWatcherAntiSpamEnabled",
+          "robloxPlayerWatcherWhitelist",
+        ],
+      },
+    },
+    {
+      id: "wikipedia-enhancements",
+      name: "Wikipedia Enhancements",
+      description:
+        "Make Wikipedia articles more focused with readable layouts and less navigation clutter.",
+      matchPatterns: [
+        "https://wikipedia.org/wiki/*",
+        "https://*.wikipedia.org/wiki/*",
+      ],
+      entrypoints: [
+        {
+          id: "wikipedia-enhancements-bail",
+          path: "src/lib/extension-bail.js",
+          world: "ISOLATED",
+          runAt: "document_start",
+        },
+        {
+          id: "wikipedia-enhancements-content",
+          path: "src/tweaks/wikipedia-enhancements/content.js",
+          world: "ISOLATED",
+          runAt: "document_idle",
+        },
+      ],
+      hostTargets: ["*.wikipedia.org", "wikipedia.org"],
+      optionsKeyPrefix: "wikipedia",
+      ui: {
+        category: "wikipedia",
+        popupSection: "Wikipedia Enhancements",
+        settingsKeys: [
+          "wikipediaEnhancementsEnabled",
+          "wikipediaReadingWidthEnabled",
+          "wikipediaReadingWidthPreset",
+          "wikipediaNavigationCleanupEnabled",
+          "wikipediaCollapseReferencesEnabled",
+          "wikipediaFloatingTocEnabled",
+          "wikipediaSearchHighlightEnabled",
+          "wikipediaHideDonationBannersEnabled",
+        ],
       },
     },
     {

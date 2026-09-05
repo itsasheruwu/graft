@@ -1,7 +1,15 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { defineConfig } from "vite";
 import {
   buildContentScripts,
@@ -12,6 +20,18 @@ import {
 function extensionManifestPlugin() {
   return {
     name: "extension-manifest-and-assets",
+    buildStart() {
+      const dist = path.join(__dirname, "dist");
+      if (!existsSync(dist)) return;
+
+      // The local signed companion lives beside the unpacked extension because
+      // Chrome's installed native-host manifest points at this stable path.
+      // Clear generated extension output without deleting that app bundle.
+      for (const entry of readdirSync(dist)) {
+        if (entry === "Graft.app") continue;
+        rmSync(path.join(dist, entry), { recursive: true, force: true });
+      }
+    },
     closeBundle() {
       const root = __dirname;
       const dist = path.join(root, "dist");
@@ -88,7 +108,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    emptyOutDir: true,
+    // buildStart performs a scoped clean while preserving dist/Graft.app.
+    emptyOutDir: false,
+    // Chrome extension pages reject modulepreload as a cross-world mismatch.
+    modulePreload: false,
     rollupOptions: {
       input: {
         popup: path.resolve(__dirname, "popup.html"),

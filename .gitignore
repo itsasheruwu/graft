@@ -34,3 +34,12 @@ npm-debug.log*
 
 # Extension signing keys (local only)
 *.pem
+
+# Native build output and local development state
+/macos/.build/
+/macos/.swiftpm/
+.codex/
+/reviews/
+*.provisionprofile
+*.mobileprovision
+*.p12

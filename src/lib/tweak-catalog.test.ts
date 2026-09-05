@@ -16,6 +16,9 @@ describe("groupTweaksByCategory", () => {
       "Customization",
       "Media",
       "Page tools",
+      "Roblox",
+      "Wikipedia",
+      "X",
       "YouTube",
     ]);
   });
@@ -34,6 +37,12 @@ describe("groupTweaksByCategory", () => {
       "Asset Finder",
       "Sound Booster",
     ]);
+
+    const pageTools = groups.find((group) => group.id === "page-tools");
+    expect(pageTools?.tweaks.map((tweak) => tweak.name)).toEqual([
+      "Element Selector",
+      "Scroll to Top",
+    ]);
   });
 
   it("lists tweak ids in grouped A–Z order", () => {
@@ -44,6 +53,10 @@ describe("groupTweaksByCategory", () => {
       "asset-finder",
       "sound-booster",
       "element-selector",
+      "scroll-to-top",
+      "roblox-player-watcher",
+      "wikipedia-enhancements",
+      "x-quiet-feed",
       "youtube-auto-translate",
     ]);
   });
@@ -54,6 +67,9 @@ describe("groupTweaksByCategory", () => {
       "customization",
       "media",
       "page-tools",
+      "roblox",
+      "wikipedia",
+      "x",
       "youtube",
     ]);
   });
