@@ -8,6 +8,8 @@ import Synchronization
 private struct ApplySettingsMessage: Encodable {
     let type = "applySettings"
     let changes: [String: JSONValue]
+    let tokens: [String: String]
+    let revision: Int
 }
 
 private struct ReadyMessage: Encodable {
@@ -34,6 +36,8 @@ private struct IncomingMessage: Decodable {
     let settings: [String: JSONValue]?
     let requestID: String?
     let notification: GraftNativeNotification?
+    let acknowledgements: [String: String]?
+    let baseRevision: Int?
 }
 
 /// Serializes framing and body so concurrent writers can't interleave a header
@@ -74,14 +78,14 @@ private func readMessage() throws -> IncomingMessage? {
 // Push app-originated changes to the extension. The main thread blocks on stdin below,
 // so this poll runs detached rather than as a child of the read loop.
 let changePollTask = Task.detached(priority: .utility) {
-    var lastRevision = -1
     while !Task.isCancelled {
         try? GraftStateFile.touchExtensionPresence()
         let state = GraftStateFile.load()
-        if state.revision != lastRevision, !state.pendingBrowserChanges.isEmpty {
-            writeMessage(ApplySettingsMessage(changes: state.pendingBrowserChanges))
+        if !state.pendingBrowserChanges.isEmpty {
+            // Retry until the exact per-key token is acknowledged, including if
+            // Chrome rejected a write or the connection dropped before the ack.
+            writeMessage(ApplySettingsMessage(changes: state.pendingBrowserChanges, tokens: state.browserChangeTokens, revision: state.revision))
         }
-        lastRevision = state.revision
         try? await Task.sleep(for: .milliseconds(500))
     }
 }
@@ -114,17 +118,16 @@ while let message = try? readMessage() {
         writeMessage(NotificationResultMessage(requestID: requestID, handled: handled))
         continue
     }
-    guard message.type == "snapshot", let rawSettings = message.settings else { continue }
-    var state = GraftStateFile.load()
-    state.browserSettings.merge(rawSettings) { _, newest in newest }
-    state.pendingBrowserChanges = state.pendingBrowserChanges.filter { key, expected in
-        state.browserSettings[key] != expected
+    guard ["snapshot", "settingsApplied"].contains(message.type), let rawSettings = message.settings else { continue }
+    do {
+        let state = try GraftStateFile.update {
+            $0.receiveBrowserSnapshot(rawSettings, acknowledgements: message.acknowledgements ?? [:], baseRevision: message.baseRevision)
+        }
+        writeMessage(ReadyMessage(revision: state.revision))
+    } catch {
+        // Keep the previous file and pending changes intact on any read/write failure.
+        writeMessage(["type": "syncError", "message": "Could not save Graft settings. Retry the connection."])
     }
-    state.extensionSeenAt = Date()
-    // Heartbeats should not make a queued-change sender believe there is new work.
-    // Only app-originated changes advance the revision.
-    try? GraftStateFile.save(state)
-    writeMessage(ReadyMessage(revision: state.revision))
 }
 
 changePollTask.cancel()

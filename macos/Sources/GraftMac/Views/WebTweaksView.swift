@@ -299,9 +299,8 @@ private struct ControlRow: View {
                         Text(option.label).tag(option.value)
                     }
                 }
-                .labelsHidden()
+                .graftTrailingPicker()
                 .controlSize(.small)
-                .frame(width: 170)
             }
         }
         .accessibilityElement(children: .combine)

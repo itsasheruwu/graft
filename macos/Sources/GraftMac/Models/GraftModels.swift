@@ -4,6 +4,8 @@ import GraftCore
 enum AppDestination: String, CaseIterable, Identifiable {
     case web = "Web Extension"
     case mac = "Mac Tweaks"
+    case audio = "Audio"
+    case activity = "Activity"
     case connection = "Connection"
 
     var id: String { rawValue }
@@ -11,6 +13,8 @@ enum AppDestination: String, CaseIterable, Identifiable {
         switch self {
         case .web: "safari"
         case .mac: "macbook"
+        case .audio: "waveform"
+        case .activity: "clock.arrow.circlepath"
         case .connection: "cable.connector"
         }
     }

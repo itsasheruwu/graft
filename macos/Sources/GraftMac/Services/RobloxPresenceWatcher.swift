@@ -251,15 +251,19 @@ final class RobloxPresenceWatcher {
     private var lastPollAt: Date?
     private var revision = 0
     private var task: Task<Void, Never>?
+    private let activity: GraftActivityStore?
+    private var isPolling = false
 
     init(
         notifications: GraftNotificationService,
         presenceLogs: RobloxPresenceLogStore,
-        pollInterval: TimeInterval = 30
+        pollInterval: TimeInterval = 30,
+        activity: GraftActivityStore? = nil
     ) {
         self.notifications = notifications
         self.presenceLogs = presenceLogs
         self.pollInterval = pollInterval
+        self.activity = activity
     }
 
     func start() {
@@ -273,6 +277,7 @@ final class RobloxPresenceWatcher {
     }
 
     func apply(_ next: RobloxPlayerWatcherConfiguration) {
+        guard configuration != next else { return }
         let currentEntries = configuration.whitelist.map { $0.lowercased() }
         let nextEntries = next.whitelist.map { $0.lowercased() }
         let ownershipChanged = configuration.enabled != next.enabled
@@ -289,6 +294,7 @@ final class RobloxPresenceWatcher {
     deinit { task?.cancel() }
 
     private func tick() async {
+        guard !isPolling else { return }
         let eligible = configuration.enabled
             && configuration.bridgeConfigured
             && !configuration.whitelist.isEmpty
@@ -307,7 +313,18 @@ final class RobloxPresenceWatcher {
 
         if let lastPollAt, Date().timeIntervalSince(lastPollAt) < pollInterval { return }
         lastPollAt = Date()
+        isPolling = true
+        defer { isPolling = false }
         await pollOnce(revision: revision)
+    }
+
+    func checkNow() async {
+        guard configuration.enabled, configuration.bridgeConfigured, !configuration.whitelist.isEmpty, notifications.canDeliverNotifications else {
+            activity?.record(.watchers, .warning, "Roblox watcher needs setup", "Enable Player Watcher, add a player, connect the browser bridge, and allow notifications before checking.", retry: .checkRoblox, coalesce: true)
+            return
+        }
+        lastPollAt = nil
+        await tick()
     }
 
     private func pollOnce(revision pollRevision: Int) async {
@@ -324,9 +341,19 @@ final class RobloxPresenceWatcher {
             identities.append(identity)
         }
 
-        guard pollRevision == revision, !identities.isEmpty,
-              var snapshots = try? await RobloxPresenceAPI.fetch(identities: identities),
-              pollRevision == revision else { return }
+        guard pollRevision == revision else { return }
+        guard !identities.isEmpty else {
+            activity?.record(.watchers, .failure, "Roblox watcher check failed", "Could not resolve any watched players. Check the player list and network connection.", retry: .checkRoblox, coalesce: true)
+            return
+        }
+        var snapshots: [RobloxPresenceSnapshot]
+        do { snapshots = try await RobloxPresenceAPI.fetch(identities: identities) }
+        catch {
+            activity?.record(.watchers, .failure, "Roblox watcher check failed", error.localizedDescription, retry: .checkRoblox, coalesce: true)
+            return
+        }
+        guard pollRevision == revision else { return }
+        activity?.record(.watchers, identities.count == configuration.whitelist.count ? .success : .warning, "Roblox watcher checked", "Checked \(identities.count) of \(configuration.whitelist.count) watched players.", retry: identities.count == configuration.whitelist.count ? nil : .checkRoblox, coalesce: true)
 
         if configuration.showExactGame {
             let missingUniverseIDs = Set<Int>(snapshots.compactMap { snapshot -> Int? in

@@ -171,10 +171,13 @@ final class SpotifyFriendWatcher {
     @ObservationIgnored private var latestSnapshots: [SpotifyFriendSnapshot] = []
     @ObservationIgnored private var shouldSeed = true
     @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private let activity: GraftActivityStore?
+    @ObservationIgnored private var lastActivityAt: Date?
 
-    init(notifications: GraftNotificationService, history: SpotifyListeningHistoryStore) {
+    init(notifications: GraftNotificationService, history: SpotifyListeningHistoryStore, activity: GraftActivityStore? = nil) {
         self.notifications = notifications
         self.history = history
+        self.activity = activity
     }
 
     func start() {
@@ -206,7 +209,12 @@ final class SpotifyFriendWatcher {
     }
 
     func ingest(_ payload: SpotifyBridgePayload, receivedAt: Date = Date()) {
-        guard payload.capability == .ready else { return }
+        guard payload.capability == .ready else {
+            if configuration.enabled {
+                activity?.record(.watchers, .warning, "Spotify watcher unavailable", payload.error ?? "Spotify is not exposing friend activity.", retry: .repairSpotify, coalesce: true)
+            }
+            return
+        }
         lastPayloadAt = receivedAt
         let current = Array(payload.friends.prefix(100))
         latestSnapshots = SpotifyFriendPresenceLogic.mergeObservations(
@@ -216,6 +224,20 @@ final class SpotifyFriendWatcher {
         )
         history.observe(friends: current, at: receivedAt)
         evaluate(at: receivedAt)
+        if configuration.enabled && (lastActivityAt.map { receivedAt.timeIntervalSince($0) >= 30 } ?? true) {
+            lastActivityAt = receivedAt
+            activity?.record(.watchers, .success, "Spotify watcher checked", "Fresh friend activity received from Spotify.", coalesce: true)
+        }
+    }
+
+    func checkNow() {
+        guard configuration.enabled else {
+            activity?.record(.watchers, .warning, "Spotify watcher is off", "Enable Spotify Friend Watcher in Mac Tweaks first.", retry: .checkSpotify, coalesce: true)
+            return
+        }
+        evaluate(at: Date())
+        let fresh = lastPayloadAt.map { Date().timeIntervalSince($0) < SpotifyFriendPresenceLogic.bridgeFreshness } ?? false
+        activity?.record(.watchers, fresh ? .success : .warning, "Spotify watcher checked", fresh ? "Friend activity is current." : "No fresh Spotify activity. Check the Spotify connection or use Repair.", retry: fresh ? nil : .checkSpotify, coalesce: true)
     }
 
     deinit { task?.cancel() }

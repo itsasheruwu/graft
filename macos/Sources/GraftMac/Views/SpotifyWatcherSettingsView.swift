@@ -41,6 +41,20 @@ struct SpotifyWatcherSettingsRow: View {
                         confirmation = action == .remove ? .remove : .install
                     }
 
+                    GraftSettingsSubGroup("Connection") {
+                        GraftToggleRow(
+                            title: "Automatically repair connection",
+                            detail: "Repairs after 90 seconds offline, refreshes broken Spotify icons and controls, and periodically checks for Spicetify updates. May restart Spotify.",
+                            isOn: Binding(
+                                get: { store.spotifyIntegration.autoRepairEnabled },
+                                set: { store.spotifyIntegration.autoRepairEnabled = $0 }
+                            )
+                        )
+                        if let message = store.spotifyIntegration.autoRepairMessage, status != .connected {
+                            GraftRow { Text(message).font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }
+
                     NavigationLink {
                         SpotifyListeningHistoryView()
                     } label: {

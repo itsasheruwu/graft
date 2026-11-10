@@ -65,26 +65,36 @@ let translateProcessing = false;
 let lastTranslateAt = 0;
 let graftNativePort = null;
 let graftNativeReconnectTimer = null;
+let graftNativeSyncQueue = Promise.resolve();
+let graftNativeRevision = null;
 const graftNativeNotificationRequests = new Map();
 const graftNativeWatcherOwnerRequests = new Map();
 let robloxWatcherFallbackPolling = false;
 let robloxWatcherFallbackRevision = 0;
 
-function postGraftNativeSnapshot() {
-  if (!graftNativePort) {
-    return;
-  }
-
-  chrome.storage.sync.get(Object.keys(SYNC_DEFAULT_SETTINGS), (settings) => {
-    if (chrome.runtime.lastError || !graftNativePort) {
-      return;
-    }
-    try {
-      graftNativePort.postMessage({ type: "snapshot", settings });
-    } catch {
-      // A disconnect can race with snapshots after an app or extension reload.
-    }
+function queueGraftNativeSync(operation) {
+  graftNativeSyncQueue = graftNativeSyncQueue.then(operation).catch(() => {
+    // Failed writes remain pending in the host and are retried there.
   });
+  return graftNativeSyncQueue;
+}
+
+function sendGraftNativeSnapshot(port, acknowledgements = {}) {
+  const baseRevision = graftNativeRevision;
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(Object.keys(SYNC_DEFAULT_SETTINGS), (settings) => {
+      if (!chrome.runtime.lastError && port === graftNativePort) {
+        try { port.postMessage({ type: "snapshot", settings, acknowledgements, baseRevision }); } catch { /* Disconnected. */ }
+      }
+      resolve();
+    });
+  });
+}
+
+function postGraftNativeSnapshot() {
+  const port = graftNativePort;
+  if (!port) return Promise.resolve();
+  return queueGraftNativeSync(() => port === graftNativePort ? sendGraftNativeSnapshot(port) : undefined);
 }
 
 function connectGraftNativeHost() {
@@ -95,7 +105,13 @@ function connectGraftNativeHost() {
   try {
     const port = chrome.runtime.connectNative(GRAFT_NATIVE_HOST);
     graftNativePort = port;
+    graftNativeRevision = null;
     port.onMessage.addListener((message) => {
+      if (port !== graftNativePort) return;
+      if (message?.type === "ready" && Number.isSafeInteger(message.revision)) {
+        graftNativeRevision = Math.max(graftNativeRevision ?? 0, message.revision);
+        return;
+      }
       if (message?.type === "robloxWatcherOwnerResult" && typeof message.requestID === "string") {
         const resolve = graftNativeWatcherOwnerRequests.get(message.requestID);
         if (resolve) {
@@ -121,11 +137,32 @@ function connectGraftNativeHost() {
         Object.entries(message.changes).filter(([key]) => allowedKeys.has(key))
       );
       if (Object.keys(patch).length > 0) {
-        chrome.storage.sync.set(patch, postGraftNativeSnapshot);
+        queueGraftNativeSync(async () => {
+          if (port !== graftNativePort) return;
+          await new Promise((resolve, reject) => {
+            chrome.storage.sync.set(patch, () => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve();
+            });
+          });
+          if (port !== graftNativePort) return;
+          if (Number.isSafeInteger(message.revision)) {
+            graftNativeRevision = Math.max(graftNativeRevision ?? 0, message.revision);
+          }
+          // Acknowledge the completed write itself. A user can change storage
+          // again before the subsequent read; that newer value must not prevent
+          // the acknowledgement and cause an old app toggle to be replayed.
+          port.postMessage({ type: "settingsApplied", settings: patch, acknowledgements: message.tokens ?? {}, baseRevision: graftNativeRevision });
+          await sendGraftNativeSnapshot(port);
+        });
       }
     });
     port.onDisconnect.addListener(() => {
+      // Reading lastError acknowledges expected host shutdowns during upgrades.
+      void chrome.runtime.lastError;
+      if (port !== graftNativePort) return;
       graftNativePort = null;
+      graftNativeRevision = null;
       for (const resolve of graftNativeNotificationRequests.values()) {
         resolve(false);
       }

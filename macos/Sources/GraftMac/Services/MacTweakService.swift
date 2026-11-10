@@ -1,9 +1,11 @@
 import AppKit
 import Foundation
 import GraftCore
+import GraftBend
 
 final class MacTweakService {
-    private var caffeinateProcess: Process?
+    let appearance = GraftAppearanceService()
+    let bend = GraftBendService()
 
     func restore(_ settings: MacSettings) { applyRuntimeSettings(settings) }
 
@@ -24,25 +26,13 @@ final class MacTweakService {
     }
 
     private func applyRuntimeSettings(_ settings: MacSettings) {
-        setKeepAwake(settings.keepAwake)
         // `NSApp` is still nil while the store is built during app initialization;
         // ContentView reapplies the window level once the window actually exists.
         guard let app = NSApp else { return }
+        appearance.applyAppearance()
+        bend.startIfEnabled()
         for window in app.windows where window.canBecomeKey {
             window.level = settings.floatGraftWindow ? .floating : .normal
-        }
-    }
-
-    private func setKeepAwake(_ enabled: Bool) {
-        if enabled, caffeinateProcess?.isRunning != true {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
-            process.arguments = ["-d", "-i"]
-            try? process.run()
-            caffeinateProcess = process
-        } else if !enabled, let process = caffeinateProcess, process.isRunning {
-            process.terminate()
-            caffeinateProcess = nil
         }
     }
 

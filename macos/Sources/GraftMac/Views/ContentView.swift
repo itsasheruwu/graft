@@ -15,6 +15,8 @@ struct ContentView: View {
                     case .web: WebTweaksView()
                     case .mac: MacTweaksView()
                     case .connection: ConnectionView()
+                    case .audio: AudioView()
+                    case .activity: ActivityView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -26,6 +28,9 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: 520)
         .onAppear { store.reapplyWindowSettings() }
+        .onChange(of: store.requestedDestination, initial: true) { _, destination in
+            if let destination { selection = destination; store.requestedDestination = nil }
+        }
     }
 }
 
@@ -137,6 +142,8 @@ private extension AppDestination {
         case .web: .blue
         case .mac: .green
         case .connection: .orange
+        case .audio: .purple
+        case .activity: .teal
         }
     }
 }

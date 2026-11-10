@@ -302,11 +302,59 @@ struct GraftToggleRow: View {
     var body: some View {
         GraftRow {
             GraftRowLabel(title: title, detail: detail, symbol: symbol, tint: tint)
-            Toggle("", isOn: $isOn)
+            Toggle(title, isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
         }
+    }
+}
+
+/// A row whose only control is a menu picker pinned to the trailing edge,
+/// matching `GraftToggleRow` so dropdowns line up with switches and sliders.
+struct GraftPickerRow<Selection: Hashable, Content: View>: View {
+    let title: String
+    var detail: String?
+    var symbol: String?
+    var tint: Color = .accentColor
+    @Binding var selection: Selection
+    private let content: Content
+
+    init(
+        title: String,
+        detail: String? = nil,
+        symbol: String? = nil,
+        tint: Color = .accentColor,
+        selection: Binding<Selection>,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.detail = detail
+        self.symbol = symbol
+        self.tint = tint
+        _selection = selection
+        self.content = content()
+    }
+
+    var body: some View {
+        GraftRow {
+            GraftRowLabel(title: title, detail: detail, symbol: symbol, tint: tint)
+            Picker(title, selection: $selection) {
+                content
+            }
+            .graftTrailingPicker()
+        }
+    }
+}
+
+extension View {
+    /// Compact menu picker that hugs its value and sits on the row's trailing edge.
+    func graftTrailingPicker() -> some View {
+        self
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: 220, alignment: .trailing)
+            .fixedSize()
     }
 }
 

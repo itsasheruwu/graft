@@ -35,13 +35,42 @@ public enum JSONValue: Codable, Equatable, Sendable {
     public var stringValue: String? { if case .string(let value) = self { value } else { nil } }
 }
 
+public enum KeepAwakeMode: String, Codable, CaseIterable, Sendable {
+    case untilTurnedOff, thirtyMinutes, twoHours, untilAppQuits
+
+    public var title: String {
+        switch self {
+        case .untilTurnedOff: "Until turned off"
+        case .thirtyMinutes: "30 minutes"
+        case .twoHours: "2 hours"
+        case .untilAppQuits: "Until an app quits"
+        }
+    }
+
+    public var duration: TimeInterval? {
+        switch self {
+        case .thirtyMinutes: 30 * 60
+        case .twoHours: 2 * 60 * 60
+        default: nil
+        }
+    }
+}
+
 public struct MacSettings: Codable, Equatable, Sendable {
     public var keepAwake = false
+    public var keepAwakeMode: KeepAwakeMode = .untilTurnedOff
+    public var keepAwakeDeadline: Date?
+    public var keepAwakeAppBundleID = ""
+    public var keepAwakeAppPID: Int32?
+    public var keepAwakeAppLaunchDate: Date?
     public var floatGraftWindow = false
     public var showHiddenFinderFiles = false
     public var hideDesktopIcons = false
     public var robloxWatcherTimeSensitive = false
     public var robloxWatcherNotificationSoundEnabled = true
+    public var codexAutoUseResetsEnabled = false
+    public var dmgAutoInstallEnabled = false
+    public var dmgAutoInstallTrashAfterSuccess = false
     public var spotifyWatcherEnabled = false
     public var spotifyWatcherNotifyStarted = true
     public var spotifyWatcherNotifyTrackChanges = true
@@ -54,11 +83,15 @@ public struct MacSettings: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case keepAwake
+        case keepAwakeMode, keepAwakeDeadline, keepAwakeAppBundleID, keepAwakeAppPID, keepAwakeAppLaunchDate
         case floatGraftWindow
         case showHiddenFinderFiles
         case hideDesktopIcons
         case robloxWatcherTimeSensitive
         case robloxWatcherNotificationSoundEnabled
+        case codexAutoUseResetsEnabled
+        case dmgAutoInstallEnabled
+        case dmgAutoInstallTrashAfterSuccess
         case spotifyWatcherEnabled
         case spotifyWatcherNotifyStarted
         case spotifyWatcherNotifyTrackChanges
@@ -72,6 +105,11 @@ public struct MacSettings: Codable, Equatable, Sendable {
         self.init()
         let container = try decoder.container(keyedBy: CodingKeys.self)
         keepAwake = try container.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? false
+        keepAwakeMode = try container.decodeIfPresent(KeepAwakeMode.self, forKey: .keepAwakeMode) ?? .untilTurnedOff
+        keepAwakeDeadline = try container.decodeIfPresent(Date.self, forKey: .keepAwakeDeadline)
+        keepAwakeAppBundleID = try container.decodeIfPresent(String.self, forKey: .keepAwakeAppBundleID) ?? ""
+        keepAwakeAppPID = try container.decodeIfPresent(Int32.self, forKey: .keepAwakeAppPID)
+        keepAwakeAppLaunchDate = try container.decodeIfPresent(Date.self, forKey: .keepAwakeAppLaunchDate)
         floatGraftWindow = try container.decodeIfPresent(Bool.self, forKey: .floatGraftWindow) ?? false
         showHiddenFinderFiles = try container.decodeIfPresent(Bool.self, forKey: .showHiddenFinderFiles) ?? false
         hideDesktopIcons = try container.decodeIfPresent(Bool.self, forKey: .hideDesktopIcons) ?? false
@@ -83,6 +121,9 @@ public struct MacSettings: Codable, Equatable, Sendable {
             Bool.self,
             forKey: .robloxWatcherNotificationSoundEnabled
         ) ?? true
+        codexAutoUseResetsEnabled = try container.decodeIfPresent(Bool.self, forKey: .codexAutoUseResetsEnabled) ?? false
+        dmgAutoInstallEnabled = try container.decodeIfPresent(Bool.self, forKey: .dmgAutoInstallEnabled) ?? false
+        dmgAutoInstallTrashAfterSuccess = try container.decodeIfPresent(Bool.self, forKey: .dmgAutoInstallTrashAfterSuccess) ?? false
         spotifyWatcherEnabled = try container.decodeIfPresent(
             Bool.self,
             forKey: .spotifyWatcherEnabled
@@ -118,10 +159,28 @@ public struct GraftSharedState: Codable, Equatable, Sendable {
     public var revision = 0
     public var browserSettings: [String: JSONValue] = [:]
     public var pendingBrowserChanges: [String: JSONValue] = [:]
+    public var browserChangeTokens: [String: String] = [:]
+    public var browserSettingVersions: [String: Int] = [:]
     public var macSettings = MacSettings()
     public var extensionSeenAt: Date?
 
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case revision, browserSettings, pendingBrowserChanges, macSettings, extensionSeenAt
+        case browserChangeTokens, browserSettingVersions
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        revision = try c.decode(Int.self, forKey: .revision)
+        browserSettings = try c.decode([String: JSONValue].self, forKey: .browserSettings)
+        pendingBrowserChanges = try c.decode([String: JSONValue].self, forKey: .pendingBrowserChanges)
+        macSettings = try c.decode(MacSettings.self, forKey: .macSettings)
+        extensionSeenAt = try c.decodeIfPresent(Date.self, forKey: .extensionSeenAt)
+        browserChangeTokens = try c.decodeIfPresent([String: String].self, forKey: .browserChangeTokens) ?? [:]
+        browserSettingVersions = try c.decodeIfPresent([String: Int].self, forKey: .browserSettingVersions) ?? [:]
+    }
 }
 
 public struct GraftCompanionPresence: Codable, Equatable, Sendable {
@@ -154,7 +213,13 @@ public struct GraftNativeNotification: Codable, Equatable, Sendable {
 
 public enum GraftStateFile {
     public static var directoryURL: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        #if DEBUG
+        // Isolate subprocess integration tests from the user's real settings.
+        if let path = ProcessInfo.processInfo.environment["GRAFT_TEST_STATE_DIRECTORY"], path.hasPrefix("/") {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Graft", isDirectory: true)
     }
 
@@ -171,10 +236,10 @@ public enum GraftStateFile {
         return state
     }
 
-    public static func save(_ state: GraftSharedState) throws {
-        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-        let data = try encoder.encode(state)
-        try data.write(to: stateURL, options: .atomic)
+    /// Every writer must mutate the latest state under the same cross-process lock.
+    @discardableResult
+    public static func update(_ mutation: (inout GraftSharedState) throws -> Void) throws -> GraftSharedState {
+        try GraftStateRepository(fileURL: stateURL).update(mutation)
     }
 
     public static func touchExtensionPresence(at date: Date = Date()) throws {

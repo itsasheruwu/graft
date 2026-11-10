@@ -11,14 +11,18 @@ let package = Package(
     ],
     targets: [
         .target(name: "GraftCore"),
+        .target(name: "GraftAudio", swiftSettings: [.swiftLanguageMode(.v5)]),
+        .target(name: "GraftBend", resources: [.copy("Animation/Rendering/Shaders.metal")]),
         .executableTarget(
             name: "GraftMac",
-            dependencies: ["GraftCore"],
+            dependencies: ["GraftCore", "GraftBend", "GraftAudio"],
             // The app target is entirely UI-driven, so main-actor isolation is the
             // correct default. GraftCore stays nonisolated for the native host.
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .executableTarget(name: "GraftNativeHost", dependencies: ["GraftCore"]),
+        .testTarget(name: "GraftBendTests", dependencies: ["GraftBend"]),
+        .testTarget(name: "GraftAudioTests", dependencies: ["GraftAudio"], swiftSettings: [.swiftLanguageMode(.v5)]),
         .testTarget(name: "GraftCoreTests", dependencies: ["GraftCore"]),
         .testTarget(name: "GraftMacTests", dependencies: ["GraftMac"]),
     ]

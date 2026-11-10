@@ -1,5 +1,6 @@
 import GraftCore
 import SwiftUI
+import ServiceManagement
 
 struct MacTweaksView: View {
     @Environment(GraftStore.self) private var store
@@ -14,13 +15,8 @@ struct MacTweaksView: View {
     var body: some View {
         GraftSettingsPage(intro: "Small, reversible controls for how your Mac behaves.") {
             GraftSettingsGroup("System") {
-                GraftToggleRow(
-                    title: "Keep Mac awake",
-                    detail: "Prevent display and idle sleep while Graft is running",
-                    symbol: "cup.and.saucer.fill",
-                    tint: .green,
-                    isOn: store.macToggle(\.keepAwake)
-                )
+                GraftStartupRow()
+                KeepAwakeSettingsRow()
                 GraftToggleRow(
                     title: "Keep Graft above other windows",
                     detail: "Float this app while you tune another app or site",
@@ -29,6 +25,8 @@ struct MacTweaksView: View {
                     isOn: store.macToggle(\.floatGraftWindow)
                 )
             }
+
+            GraftMacAppearanceGroup()
 
             GraftSettingsGroup(
                 "Finder",
@@ -50,11 +48,14 @@ struct MacTweaksView: View {
                 )
             }
 
-            if store.spotifyIntegration.isSpotifyInstalled {
-                GraftSettingsGroup(
-                    "Applications",
-                    footer: "Friend activity stays on this Mac. Graft does not upload or sync listening history."
-                ) {
+            GraftSettingsGroup(
+                "Applications",
+                footer: store.spotifyIntegration.isSpotifyInstalled
+                    ? "Friend activity stays on this Mac. Graft does not upload or sync listening history." : nil
+            ) {
+                DMGInstallerSettingsRow()
+                CodexResetSettingsRow()
+                if store.spotifyIntegration.isSpotifyInstalled {
                     SpotifyWatcherSettingsRow()
                 }
             }

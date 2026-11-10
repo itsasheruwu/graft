@@ -150,3 +150,12 @@ Architecture notes and agent conventions: [`AGENTS.md`](AGENTS.md).
 ## License
 
 [MIT](LICENSE)
+
+### macOS audio and licensing
+
+Graft’s native Audio pane integrates FineTune-derived per-app mixing, routing, EQ,
+headphone correction, and device controls. Audio is opt-in and independent of the
+browser extension. See [native audio documentation](macos/README.md#native-audio).
+The combined macOS application is GPLv3 with preserved upstream notices; the
+independent browser extension and website retain the root MIT license. See
+[FineTune attribution and source distribution](macos/FINETUNE-NOTICE.md).

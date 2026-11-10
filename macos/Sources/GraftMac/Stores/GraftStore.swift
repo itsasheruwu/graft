@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import GraftCore
+import GraftAudio
 import Observation
 import SwiftUI
 
@@ -11,7 +12,14 @@ final class GraftStore {
     var extensionID = UserDefaults.standard.string(forKey: "graftExtensionID") ?? ""
     var connectionMessage: String?
 
+    let audio = GraftAudioService()
+    var requestedDestination: AppDestination?
+
     let macTweaks = MacTweakService()
+    let keepAwake = KeepAwakeService()
+    let activity: GraftActivityStore
+    let codexResets: CodexResetService
+    let dmgInstaller: DMGInstallerService
     let notifications: GraftNotificationService
     let robloxPresenceLogs: RobloxPresenceLogStore
     let robloxWatcher: RobloxPresenceWatcher
@@ -20,20 +28,33 @@ final class GraftStore {
     let spotifyIntegration: SpotifyIntegrationService
     let spotifyBridgeServer: SpotifyBridgeServer
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var lastConnectionState: Bool?
+    @ObservationIgnored private var unsavedMutations: [(inout GraftSharedState) throws -> Void] = []
 
     init() {
+        let activity = GraftActivityStore()
+        self.activity = activity
+        dmgInstaller = DMGInstallerService(activity: activity)
         let notifications = GraftNotificationService()
         let robloxPresenceLogs = RobloxPresenceLogStore()
         let spotifyHistory = SpotifyListeningHistoryStore()
         let spotifyWatcher = SpotifyFriendWatcher(
             notifications: notifications,
-            history: spotifyHistory
+            history: spotifyHistory,
+            activity: activity
         )
-        let spotifyIntegration = SpotifyIntegrationService()
+        let spotifyIntegration = SpotifyIntegrationService(activity: activity)
         let spotifyBridgeServer = SpotifyBridgeServer(token: spotifyIntegration.bridgeToken) {
             payload, receivedAt in
             spotifyWatcher.ingest(payload, receivedAt: receivedAt)
         }
+        codexResets = CodexResetService(onRedeemed: { creditID in
+            notifications.deliver(.init(
+                id: "codex-reset-\(creditID)",
+                title: "Codex reset used",
+                message: "Graft automatically used a banked rate limit reset before it expired."
+            ), preferences: .init())
+        })
         self.notifications = notifications
         self.robloxPresenceLogs = robloxPresenceLogs
         self.spotifyHistory = spotifyHistory
@@ -42,14 +63,32 @@ final class GraftStore {
         self.spotifyBridgeServer = spotifyBridgeServer
         robloxWatcher = RobloxPresenceWatcher(
             notifications: notifications,
-            presenceLogs: robloxPresenceLogs
+            presenceLogs: robloxPresenceLogs,
+            activity: activity
         )
         var loaded = GraftStateFile.load()
-        for (key, value) in BrowserTweakCatalog.defaults where loaded.browserSettings[key] == nil {
-            loaded.browserSettings[key] = value
-        }
+        var startupError: String?
+        do {
+            loaded = try GraftStateFile.update { latest in
+                for (key, value) in BrowserTweakCatalog.defaults where latest.browserSettings[key] == nil {
+                    latest.browserSettings[key] = value
+                }
+                for key in latest.pendingBrowserChanges.keys where latest.browserChangeTokens[key] == nil {
+                    latest.browserChangeTokens[key] = UUID().uuidString
+                }
+            }
+        } catch { startupError = "Could not load settings: \(error.localizedDescription)" }
         state = loaded
-        try? GraftStateFile.save(loaded)
+        connectionMessage = startupError
+        if let startupError { activity.record(.settings, .failure, "Settings could not load", startupError, retry: .syncSettings) }
+        keepAwake.onStopped = { [weak self] message, failed in
+            guard let self else { return }
+            self.activity.record(.keepAwake, failed ? .failure : .success, failed ? "Keep Awake failed" : "Keep Awake stopped", message, retry: failed ? .keepAwake : nil)
+            self.commit { $0.macSettings.keepAwake = false; $0.macSettings.keepAwakeDeadline = nil }
+        }
+        keepAwake.apply(loaded.macSettings)
+        codexResets.apply(enabled: loaded.macSettings.codexAutoUseResetsEnabled)
+        dmgInstaller.apply(loaded.macSettings)
         macTweaks.restore(loaded.macSettings)
         notifications.apply(loaded.macSettings)
         notifications.start()
@@ -148,10 +187,7 @@ final class GraftStore {
     }
 
     func setBrowserValue(_ value: JSONValue, for key: String) {
-        state.browserSettings[key] = value
-        state.pendingBrowserChanges[key] = value
-        robloxWatcher.apply(robloxWatcherConfiguration(for: state))
-        persist()
+        commit { $0.setBrowserValue(value, for: key) }
     }
 
     func macToggle(_ path: WritableKeyPath<MacSettings, Bool>) -> Binding<Bool> {
@@ -166,12 +202,32 @@ final class GraftStore {
     }
 
     func setMacSettings(_ settings: MacSettings) {
-        let previous = state.macSettings
-        state.macSettings = settings
+        let baseline = state.macSettings
+        var proposed = settings
+        let sessionChanged = settings.keepAwake != baseline.keepAwake || settings.keepAwakeMode != baseline.keepAwakeMode || settings.keepAwakeAppBundleID != baseline.keepAwakeAppBundleID
+        if sessionChanged {
+            proposed.keepAwakeDeadline = settings.keepAwake ? settings.keepAwakeMode.duration.map { Date().addingTimeInterval($0) } : nil
+            if settings.keepAwakeMode == .untilAppQuits {
+                let app = NSRunningApplication.runningApplications(withBundleIdentifier: settings.keepAwakeAppBundleID).first { !$0.isTerminated }
+                proposed.keepAwakeAppPID = app?.processIdentifier
+                proposed.keepAwakeAppLaunchDate = app?.launchDate
+            }
+        }
+        commit { try $0.mergeMacSettings(proposed, baseline: baseline) }
+        if sessionChanged {
+            activity.record(.keepAwake, .info, keepAwake.isActive ? "Keep Awake started" : "Keep Awake off", keepAwake.detail)
+        }
+    }
+
+    private func applyRuntimeSettings(previous: MacSettings) {
+        let settings = state.macSettings
+        keepAwake.apply(settings)
+        codexResets.apply(enabled: settings.codexAutoUseResetsEnabled)
+        dmgInstaller.apply(settings)
         macTweaks.apply(settings, previous: previous)
         notifications.apply(settings)
         spotifyWatcher.apply(.init(settings: settings))
-        persist()
+        robloxWatcher.apply(robloxWatcherConfiguration(for: state))
     }
 
     func reapplyWindowSettings() {
@@ -213,25 +269,82 @@ final class GraftStore {
         await spotifyIntegration.removeBridge()
     }
 
-    private func persist() {
-        state.revision += 1
-        do { try GraftStateFile.save(state) }
-        catch { connectionMessage = "Could not save settings: \(error.localizedDescription)" }
+    private func commit(_ mutation: @escaping (inout GraftSharedState) throws -> Void) {
+        let previous = state.macSettings
+        do {
+            let queued = unsavedMutations
+            state = try GraftStateFile.update { latest in
+                for pending in queued { try pending(&latest) }
+                try mutation(&latest)
+            }
+            unsavedMutations.removeAll()
+            connectionMessage = nil
+            applyRuntimeSettings(previous: previous)
+        }
+        catch {
+            unsavedMutations.append(mutation)
+            connectionMessage = "Could not save settings: \(error.localizedDescription)"
+            activity.record(.settings, .failure, "Settings could not save", error.localizedDescription, retry: .syncSettings, coalesce: true)
+        }
     }
 
     private func refreshFromDisk() {
         connectionRefreshTick &+= 1
         spotifyIntegration.refresh()
-        let diskState = GraftStateFile.load()
+        spotifyIntegration.checkAutoRepair(
+            watcherEnabled: state.macSettings.spotifyWatcherEnabled,
+            bridgeServer: spotifyBridgeServer
+        )
+        let connected = isExtensionConnected
+        if lastConnectionState != connected {
+            lastConnectionState = connected
+            activity.record(.settings, connected ? .success : .warning, connected ? "Browser connected" : "Browser disconnected", connected ? "Settings synchronization is available." : "Queued changes are kept until the extension reconnects.", retry: connected ? nil : .syncSettings)
+        }
+        let diskState: GraftSharedState
+        do { diskState = try GraftStateRepository(fileURL: GraftStateFile.stateURL).read() }
+        catch {
+            activity.record(.settings, .failure, "Settings could not read", error.localizedDescription, retry: .syncSettings, coalesce: true)
+            return
+        }
         if diskState.revision != state.revision || diskState.extensionSeenAt != state.extensionSeenAt {
+            if !state.pendingBrowserChanges.isEmpty && diskState.pendingBrowserChanges.isEmpty {
+                activity.record(.settings, .success, "Settings synced", "The browser acknowledged all queued changes.")
+            }
             let previousMacSettings = state.macSettings
             state = diskState
-            if diskState.macSettings != previousMacSettings {
-                macTweaks.apply(diskState.macSettings, previous: previousMacSettings)
-                notifications.apply(diskState.macSettings)
-                spotifyWatcher.apply(.init(settings: diskState.macSettings))
+            applyRuntimeSettings(previous: previousMacSettings)
+        }
+    }
+
+    func retrySettingsSync() {
+        commit { latest in
+            for (key, value) in latest.browserSettings { latest.setBrowserValue(value, for: key) }
+        }
+        activity.record(.settings, isExtensionConnected ? .info : .warning, "Settings sync requested", isExtensionConnected ? "Waiting for browser acknowledgement." : "Extension is offline. Open Chrome and enable the Graft extension; queued changes will retry automatically.", retry: .syncSettings)
+    }
+
+    func checkSpotifyNow() {
+        spotifyIntegration.refresh()
+        spotifyWatcher.checkNow()
+        let status = spotifyIntegrationStatus
+        activity.record(.spotify, status == .connected ? .success : .warning, "Spotify connection checked", status.detail, retry: status == .connected ? nil : .repairSpotify, coalesce: true)
+    }
+
+    func retryActivity(_ entry: GraftActivityEntry) async {
+        await activity.retry(entry) { [self] action in
+            switch action {
+            case .installDMG(let file): try await dmgInstaller.retry(file: file)
+            case .cleanupDMG(let file, let volume, let applications, let trash):
+                try await dmgInstaller.retryCleanup(file: file, volume: volume, applications: applications, trash: trash)
+            case .checkRoblox: await robloxWatcher.checkNow()
+            case .checkSpotify: checkSpotifyNow()
+            case .repairSpotify: await installOrRepairSpotifyBridge()
+            case .syncSettings: retrySettingsSync()
+            case .keepAwake:
+                var settings = state.macSettings
+                settings.keepAwake = true
+                setMacSettings(settings)
             }
-            robloxWatcher.apply(robloxWatcherConfiguration(for: diskState))
         }
     }
 
