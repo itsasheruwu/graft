@@ -36,7 +36,9 @@ struct URLHandlerSetVolumesTests {
 
         handler.handleURL(try #require(URL(string: "graft://audio/set-volumes?app=com.example.inactive&volume=250")))
 
-        #expect(engine.inactiveVolumes["com.example.inactive"] == 2.5 / 3)
+        let volume = try #require(engine.inactiveVolumes["com.example.inactive"])
+        let expectedVolume: Float = 2.5 / 3
+        #expect(abs(volume - expectedVolume) < 0.000_001)
         #expect(engine.inactiveBoosts["com.example.inactive"] == .x3)
         #expect(engine.activeVolumes.isEmpty)
     }
