@@ -73,3 +73,18 @@ struct ProgressAnimator {
         abs(value - target) < 0.0005
     }
 }
+
+/// A Mac without an angle sensor reports only the endpoints. Give each edge
+/// a short, display-paced animation even if no more hinge samples arrive.
+struct LidEdgeAnimation {
+    static let duration: TimeInterval = 0.32
+    let direction: HingeDirection
+    let startedAt: TimeInterval
+
+    func progress(at time: TimeInterval) -> Double? {
+        let elapsed = time - startedAt
+        guard elapsed < Self.duration else { return nil }
+        let progress = Easing.easeInOutCubic(clamp(elapsed / Self.duration, 0, 1))
+        return direction == .opening ? progress : 1 - progress
+    }
+}

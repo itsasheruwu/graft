@@ -64,10 +64,10 @@ final class LidStateProvider: HingeProvider, @unchecked Sendable {
         let context = Unmanaged.passUnretained(self).toOpaque()
         let result = IOServiceAddInterestNotification(
             port, service, kIOGeneralInterest,
-            { context, _, messageType, _ in
+            { context, _, messageType, messageArgument in
                 guard let context else { return }
                 let provider = Unmanaged<LidStateProvider>.fromOpaque(context).takeUnretainedValue()
-                provider.handleInterestMessage(messageType)
+                provider.handleInterestMessage(messageType, stateBits: UInt(bitPattern: messageArgument))
             },
             context, &notification
         )
@@ -77,7 +77,7 @@ final class LidStateProvider: HingeProvider, @unchecked Sendable {
         }
 
         IONotificationPortSetDispatchQueue(port, queue)
-        emitCurrentState()
+        queue.sync { emitCurrentState() }
         Log.hinge.info("Lid state provider started")
     }
 
@@ -97,9 +97,14 @@ final class LidStateProvider: HingeProvider, @unchecked Sendable {
         handler = nil
     }
 
-    private func handleInterestMessage(_ messageType: UInt32) {
+    func reconnect() {
+        queue.sync { emitCurrentState() }
+    }
+
+    private func handleInterestMessage(_ messageType: UInt32, stateBits: UInt) {
         guard messageType == Self.clamshellStateChanged else { return }
-        emitCurrentState()
+        let isClosed = stateBits & UInt(kClamshellStateBit) != 0
+        handler?(HingeSample(angle: nil, lidIsOpen: !isClosed))
     }
 
     private func emitCurrentState() {

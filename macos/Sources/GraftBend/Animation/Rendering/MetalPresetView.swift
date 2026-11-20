@@ -94,14 +94,15 @@ final class MetalPresetView: NSView {
     }
 
     /// Uploads on a background queue, so the main thread stays free to draw.
-    func uploadCapturedImage(_ image: CGImage) async {
-        guard let renderer else { return }
+    func uploadCapturedImage(_ image: CGImage) async -> Bool {
+        guard let renderer else { return false }
         let context = renderer.uploadContext
         let uploaded = await MetalTextureLoader.makeMipmappedTexture(
             from: image, device: context.device, queue: context.queue
         )
-        guard let uploaded else { return }
+        guard let uploaded, !Task.isCancelled else { return false }
         renderer.adopt(uploaded)
+        return true
     }
 
     /// Queues a frame. Rendering happens on the next display refresh.

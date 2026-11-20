@@ -72,9 +72,19 @@ final class HingeService {
             }
         }
 
+        let deliversEdges = candidate.capability == .lidStateOnly
         do {
-            try candidate.start { [pipeline, mailbox] sample in
+            try candidate.start { [weak self, weak candidate, pipeline, mailbox] sample in
                 guard let update = pipeline.ingest(sample) else { return }
+                if deliversEdges {
+                    // A close can be followed by an open before the main actor runs.
+                    // Keep both events so the opening animation has a closed baseline.
+                    DispatchQueue.main.async { [weak self, weak candidate] in
+                        guard let self, let candidate, self.provider === candidate else { return }
+                        self.apply(update)
+                    }
+                    return
+                }
                 // Coalesce rather than queue. Creating a Task per sample allocates at
                 // the sensor's rate and, worse, lets a backlog build up so the frame
                 // being drawn describes an angle the lid has already left. Only the

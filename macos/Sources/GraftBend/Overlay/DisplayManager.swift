@@ -3,10 +3,10 @@ import CoreGraphics
 
 /// Finds the display that physically moves with the lid.
 enum DisplayManager {
-    static func builtInScreen() -> NSScreen? {
+    static func builtInScreen(awakeOnly: Bool = false) -> NSScreen? {
         NSScreen.screens.first { screen in
             guard let id = displayID(of: screen) else { return false }
-            return CGDisplayIsBuiltin(id) != 0
+            return CGDisplayIsBuiltin(id) != 0 && (!awakeOnly || CGDisplayIsAsleep(id) == 0)
         }
     }
 
