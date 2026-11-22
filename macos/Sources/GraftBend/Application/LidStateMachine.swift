@@ -55,9 +55,26 @@ struct LidStateMachine {
     var animatesClosing = true
     var animatesOpening = true
     var isEnabled = true
+    private var discreteLidIsClosed: Bool?
 
     mutating func reset() {
         phase = .idle
+        discreteLidIsClosed = nil
+    }
+
+    /// An opening sample can reach us before the display-wake notification.
+    /// Keep the closed baseline until the provider resamples the lid on wake.
+    mutating func handleLidEdge(isClosed: Bool, displayReady: Bool = true) -> HingeDirection? {
+        guard isEnabled else { return nil }
+        if phase == .sleeping || phase == .clamshell || !displayReady {
+            if isClosed { discreteLidIsClosed = true }
+            return nil
+        }
+        if phase == .waking { phase = .idle }
+        let previous = discreteLidIsClosed
+        discreteLidIsClosed = isClosed
+        guard let previous, previous != isClosed else { return nil }
+        return isClosed ? .closing : .opening
     }
 
     mutating func handle(_ state: HingeState) -> LidTransition {

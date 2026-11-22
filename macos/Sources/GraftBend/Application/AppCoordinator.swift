@@ -70,6 +70,7 @@ final class AppCoordinator {
         accessibilityObserver = nil
         previewTask?.cancel()
         previewTask = nil
+        machine.reset()
         hinge.stop()
         power.stop()
         overlay.teardown()
@@ -111,6 +112,21 @@ final class AppCoordinator {
     // MARK: - Pipeline
 
     private func handle(_ hingeState: HingeState) {
+        if hinge.capability == .lidStateOnly {
+            let direction = machine.handleLidEdge(
+                isClosed: hingeState.isClosed,
+                displayReady: DisplayManager.builtInScreen(awakeOnly: true) != nil
+            )
+            if let direction, previewTask == nil {
+                overlay.stopLidEdgeAnimation()
+                let animates = direction == .opening ? preferences.animatesOpening : preferences.animatesClosing
+                if animates { overlay.playLidEdgeAnimation(direction) }
+            }
+            state.phase = machine.phase
+            publishDiagnostics(hingeState)
+            return
+        }
+
         guard previewTask == nil else {
             publishDiagnostics(hingeState)
             return
@@ -162,19 +178,22 @@ final class AppCoordinator {
     private func handle(_ event: PowerEvent) {
         switch event {
         case .systemDidWake, .displaysDidWake:
-            // The sensor endpoint does not survive system sleep; rebuild it before
-            // relying on the next reading.
-            hinge.reconnect()
             machine.externalDisplayAttached = DisplayManager.hasExternalDisplay
         case .systemWillSleep, .displaysDidSleep, .screenLocked:
             previewTask?.cancel()
             previewTask = nil
+            overlay.stopLidEdgeAnimation()
         default:
             break
         }
         let transition = machine.handle(event)
         overlay.apply(transition, state: hinge.state)
         state.phase = transition.phase
+        if event == .systemDidWake || event == .displaysDidWake {
+            // Reopen the angle sensor or refresh the current discrete lid state after
+            // the machine has left its sleep phase.
+            hinge.reconnect()
+        }
     }
 
     // MARK: - Actions
@@ -182,6 +201,7 @@ final class AppCoordinator {
     /// Runs the selected preset over the whole travel on the real display.
     func runPreview() {
         previewTask?.cancel()
+        overlay.stopLidEdgeAnimation()
         overlay.prepareForPreview()
         previewTask = Task { @MainActor [weak self] in
             guard let self else { return }

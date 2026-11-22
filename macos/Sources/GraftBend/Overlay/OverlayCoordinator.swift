@@ -35,6 +35,7 @@ final class OverlayCoordinator {
     /// the render being driven by the readings themselves.
     private var latestState: HingeState = .open
     private var animator = ProgressAnimator()
+    private var lidEdgeAnimation: LidEdgeAnimation?
 
     private var captureTask: Task<Void, Never>?
     private var hasTexture = false
@@ -133,9 +134,10 @@ final class OverlayCoordinator {
                 captureTask = nil
                 return
             }
-            await view?.uploadCapturedImage(image)
+            let uploaded = await view?.uploadCapturedImage(image) == true
             guard !Task.isCancelled else { return }
             captureTask = nil
+            guard uploaded else { return }
             hasTexture = true
             textureTimestamp = MonotonicClock.now()
             // Only reveal the overlay once it can draw something identical to what is
@@ -177,6 +179,14 @@ final class OverlayCoordinator {
 
     /// Advances the animation by one display refresh and evaluates the preset.
     private func frame(advancingBy interval: CFTimeInterval) -> FrameDescription? {
+        if let animation = lidEdgeAnimation {
+            guard let progress = animation.progress(at: MonotonicClock.now()) else {
+                stopLidEdgeAnimation()
+                return nil
+            }
+            engine.context.captureAvailable = hasTexture
+            return engine.frame(progress: progress, direction: animation.direction)
+        }
         guard isTracking else { return nil }
         animator.advance(
             target: latestState.progress,
@@ -185,6 +195,20 @@ final class OverlayCoordinator {
         )
         onProgressRendered?(animator.value)
         return currentFrame()
+    }
+
+    func playLidEdgeAnimation(_ direction: HingeDirection) {
+        ensureWindow()
+        guard renderer != nil, window != nil else { return }
+        primeCapture()
+        lidEdgeAnimation = LidEdgeAnimation(direction: direction, startedAt: MonotonicClock.now())
+        wantsWindowVisible = true
+        showWindowIfWanted()
+    }
+
+    func stopLidEdgeAnimation() {
+        guard lidEdgeAnimation != nil else { return }
+        teardown()
     }
 
     private func currentFrame() -> FrameDescription {
@@ -243,7 +267,7 @@ final class OverlayCoordinator {
     private func showWindowIfWanted() {
         guard wantsWindowVisible, let window else { return }
         guard !window.isVisible else { return }
-        if engine.needsScreenCapture && captureIsAvailable && !hasTexture { return }
+        if lidEdgeAnimation == nil, engine.needsScreenCapture, captureIsAvailable, !hasTexture { return }
         window.orderFrontRegardless()
         view?.startDisplayLinkIfNeeded()
     }
@@ -251,6 +275,7 @@ final class OverlayCoordinator {
     private func hideWindow() {
         wantsWindowVisible = false
         isTracking = false
+        lidEdgeAnimation = nil
         view?.stopDisplayLink()
         window?.orderOut(nil)
     }

@@ -147,4 +147,54 @@ final class LidStateMachineTests: XCTestCase {
             XCTAssertEqual(machine.handle(state(progress)).phase, .idle)
         }
     }
+
+    func testDiscreteLidEventsAnimateOnlyOnChanges() {
+        var machine = LidStateMachine()
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+        XCTAssertEqual(machine.handleLidEdge(isClosed: true), .closing)
+        XCTAssertNil(machine.handleLidEdge(isClosed: true))
+        XCTAssertEqual(machine.handleLidEdge(isClosed: false), .opening)
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+    }
+
+    func testDiscreteOpeningBeforeDisplayWakePlaysOnceAfterWake() {
+        var machine = LidStateMachine()
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+        _ = machine.handle(PowerEvent.systemWillSleep)
+        XCTAssertNil(machine.handleLidEdge(isClosed: true))
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+        _ = machine.handle(PowerEvent.systemDidWake)
+        XCTAssertNil(machine.handleLidEdge(isClosed: false, displayReady: false))
+        _ = machine.handle(PowerEvent.displaysDidWake)
+        XCTAssertEqual(machine.handleLidEdge(isClosed: false), .opening)
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+        XCTAssertEqual(machine.phase, .idle)
+    }
+
+    func testDiscreteWakeWithTheLidStillOpenDoesNotAnimate() {
+        var machine = LidStateMachine()
+        _ = machine.handleLidEdge(isClosed: false)
+        _ = machine.handle(PowerEvent.displaysDidSleep)
+        _ = machine.handle(PowerEvent.displaysDidWake)
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+    }
+
+    func testDiscreteEdgesInterpolateAndFinishWithoutMoreSamples() {
+        let duration = LidEdgeAnimation.duration
+        let opening = LidEdgeAnimation(direction: .opening, startedAt: 0)
+        let closing = LidEdgeAnimation(direction: .closing, startedAt: 0)
+        XCTAssertEqual(opening.progress(at: 0), 0)
+        XCTAssertEqual(closing.progress(at: 0), 1)
+        XCTAssertEqual(opening.progress(at: duration / 2), 0.5)
+        XCTAssertEqual(closing.progress(at: duration / 2), 0.5)
+        XCTAssertNil(opening.progress(at: duration))
+        XCTAssertNil(closing.progress(at: duration))
+    }
+
+    func testReenablingDoesNotReplayAChangeThatHappenedWhileDisabled() {
+        var machine = LidStateMachine()
+        _ = machine.handleLidEdge(isClosed: true)
+        machine.reset()
+        XCTAssertNil(machine.handleLidEdge(isClosed: false))
+    }
 }
