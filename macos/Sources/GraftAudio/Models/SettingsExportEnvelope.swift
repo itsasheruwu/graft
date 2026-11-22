@@ -32,7 +32,7 @@ package enum SettingsImportError: LocalizedError {
     package var errorDescription: String? {
         switch self {
         case .unsupportedFormat(let format):
-            return "Unsupported FineTune settings format: \(format)"
+            return "Unsupported audio settings format: \(format)"
         }
     }
 }

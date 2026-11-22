@@ -33,7 +33,7 @@ package struct AudioProfile: Codable, Equatable, Identifiable {
     }
 }
 
-/// Per-app slice of an audio profile, keyed by FineTune persistence identifier.
+/// Per-app slice of an audio profile, keyed by audio app persistence identifier.
 package struct AudioProfileRule: Codable, Equatable, Identifiable {
     package var id: String { persistenceIdentifier }
 

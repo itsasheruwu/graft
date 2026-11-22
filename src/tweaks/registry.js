@@ -51,7 +51,6 @@ const TWEAK_REGISTRY = Object.freeze({
       youtubeAutoTranslateDebugEnabled: false,
       youtubeAutoTranslateTargetMode: "auto",
       youtubeAutoTranslateTargetLanguage: "en",
-      graftAiRewriterEnabled: true,
       assetFinderEnabled: true,
       elementSelectorEnabled: false,
       scrollToTopEnabled: false,
@@ -64,7 +63,6 @@ const TWEAK_REGISTRY = Object.freeze({
       wikipediaFloatingTocEnabled: false,
       wikipediaSearchHighlightEnabled: false,
       wikipediaHideDonationBannersEnabled: false,
-      slopalyticsGlassEnabled: false,
       xQuietFeedEnabled: false,
       robloxPlayerWatcherEnabled: false,
       robloxPlayerWatcherNotifyOnline: true,
@@ -91,19 +89,6 @@ const TWEAK_REGISTRY = Object.freeze({
     },
   }),
   tweaks: [
-    {
-      id: "slopalytics-glass",
-      name: "Slopalytics Glass",
-      description: "Restyle Slopalytics benchmarks and usage with frosted panels and clear controls.",
-      matchPatterns: ["https://slopalytics.com/*", "https://www.slopalytics.com/*"],
-      entrypoints: [
-        { id: "slopalytics-glass-bail", path: "src/lib/extension-bail.js", world: "ISOLATED", runAt: "document_start" },
-        { id: "slopalytics-glass-content", path: "src/tweaks/slopalytics-glass/content.js", world: "ISOLATED", runAt: "document_idle" },
-      ],
-      hostTargets: ["slopalytics.com", "www.slopalytics.com"],
-      optionsKeyPrefix: "slopalyticsGlass",
-      ui: { category: "appearance", popupSection: "Slopalytics Glass", settingsKeys: ["slopalyticsGlassEnabled"] },
-    },
     {
       id: "theme-syncer",
       name: "Theme Syncer",
@@ -364,44 +349,6 @@ const TWEAK_REGISTRY = Object.freeze({
           "wikipediaFloatingTocEnabled",
           "wikipediaSearchHighlightEnabled",
           "wikipediaHideDonationBannersEnabled",
-        ],
-      },
-    },
-    {
-      id: "graft-ai-rewriter",
-      name: "AI Rewriter",
-      description:
-        "Reshape any website's look, layout, density, and shortcuts from a plain-English prompt.",
-      matchPatterns: GLOBAL_MATCH_PATTERNS,
-      entrypoints: [
-        {
-          id: "graft-ai-rewriter-bail",
-          path: "src/lib/extension-bail.js",
-          world: "ISOLATED",
-          runAt: "document_start",
-        },
-        {
-          id: "graft-ai-rewriter-page",
-          path: "src/tweaks/graft-ai-rewriter/page.js",
-          world: "MAIN",
-          runAt: "document_start",
-        },
-        {
-          id: "graft-ai-rewriter-bridge",
-          path: "src/tweaks/graft-ai-rewriter/bridge.js",
-          world: "ISOLATED",
-          runAt: "document_start",
-        },
-      ],
-      hostTargets: ["*"],
-      optionsKeyPrefix: "graftAiRewriter",
-      ui: {
-        category: "customization",
-        popupSection: "AI Rewriter",
-        settingsKeys: [
-          "graftAiRewriterEnabled",
-          "graftAiHelperPort",
-          "graftAiHelperToken",
         ],
       },
     },

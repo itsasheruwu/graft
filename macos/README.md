@@ -130,7 +130,7 @@ extension. Enable it in Audio; macOS requests system audio access when an app
 plays sound. The access indicator stays provisional until CoreAudio confirms a
 successful tap. If access is denied, open Permissions, allow Graft in Screen &
 System Audio Recording, return to Graft, and Retry. Disabling audio or quitting
-releases Graft's taps. A running FineTune instance pauses activation until it exits.
+releases Graft's taps. Graft waits for a conflicting audio mixer to quit before activating.
 
 Applications support volume, mute, 1–4× boost, inactive pinning, ignoring,
 single/multiple output routing, and 10-band EQ with built-in/custom presets.
@@ -149,16 +149,16 @@ catalog; captured audio is processed locally and is not recorded or uploaded.
 ### Data and import
 
 Audio data lives in `~/Library/Application Support/Graft/Audio/`, separately from
-extension shared state. Review Import offers a one-time copy from FineTune's
-Application Support directory. Graft's prior settings and imported profiles are
-backed up under `Audio/Backups/<identifier>/`. FineTune files are never modified.
+extension shared state. Review Import offers a one-time copy of compatible audio
+settings. Graft backs up its prior settings and imported profiles under
+`Audio/Backups/<identifier>/` and leaves the original files intact.
 Startup, menu icon, onboarding, and OS grants are excluded. The import preserves
 audio rules, pinned/ignored apps, EQ presets, audio profiles, favorites, and
 headphone files. Missing hardware remains a saved routing preference.
 
 Graft JSON exports use `com.graft.audio.settings` and include imported headphone
-files; imports also accept FineTune's `com.finetuneapp.settings` envelope or its
-versioned `settings.json`. Unsupported versions and malformed/path-traversing
+files. Imports also accept legacy settings envelopes and versioned
+`settings.json` files. Unsupported versions and malformed/path-traversing
 profile files are rejected before replacement. Reset affects audio settings only
 and saves a backup first. Diagnostics are exported locally only on request.
 
@@ -184,13 +184,13 @@ Use `graft://audio/<action>` with these actions:
 
 Example: `open 'graft://audio/set-volumes?app=com.spotify.client&volume=50'`.
 Audio must already be enabled and capture-authorized; commands never grant
-permissions or turn on audio management. Graft does not register `finetune://`.
+permissions or turn on audio management.
 Browser Sound Booster and native boost multiply when both are enabled.
 
 ### Build, license, and validation
 
-The combined macOS app is GPLv3; see `LICENSE`, `FINETUNE-NOTICE.md`, and the
-recorded source snapshot hashes. Independent extension/website code retains the
+The combined macOS app is GPLv3. See the [license](LICENSE) and
+[upstream attribution and source distribution](FINETUNE-NOTICE.md). Independent extension/website code retains the
 root MIT license. Match every distributed macOS binary with its complete source
 archive and build instructions. `./script/build_and_run.sh build` packages
 without launching; `--verify` packages and launches the exact artifact.
@@ -206,7 +206,6 @@ at a writable temporary directory. This affects the build tool only.
 Real-device acceptance still requires system audio permission and hardware:
 independent playback from two apps, mute/boost/routing audibility, multi-output
 drift, disconnect/reconnect, sleep/wake, app relaunch/browser subprocesses,
-microphone controls, Bluetooth and supported-display DDC. Compare idle and active
-CPU/latency against FineTune with the same apps/devices. Unit tests cannot certify
-those hardware outcomes. Check window/menu synchronization, both appearances,
+microphone controls, Bluetooth and supported-display DDC. Measure idle and active
+CPU usage and latency with the same apps and devices. Check window/menu synchronization, both appearances,
 minimum window size, VoiceOver, and window-close playback in the packaged build.

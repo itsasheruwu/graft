@@ -40,7 +40,7 @@ package final class AudioEngine {
     private var appliedPIDs: Set<pid_t> = []
     private var appDeviceRouting: [pid_t: String] = [:]  // pid → deviceUID (always explicit)
     private var followsDefault: Set<pid_t> = []  // Apps that follow system default
-    /// The last output default confirmed by FineTune (user change or programmatic switch).
+    /// The last output default confirmed by Graft (user change or programmatic switch).
     /// Used to restore after macOS auto-switches to a lower-priority device.
     private var lastConfirmedDefaultUID: String?
     /// Timestamp of the last auto-switch override. Used to distinguish rapid BT auto-switches
@@ -454,7 +454,7 @@ package final class AudioEngine {
 
     // MARK: - Ignored Apps
 
-    /// Hide an active app so FineTune ignores it entirely.
+    /// Hide an active app so Graft ignores it entirely.
     package func ignoreApp(_ app: AudioApp) {
         let info = IgnoredAppInfo(
             persistenceIdentifier: app.persistenceIdentifier,
@@ -1556,7 +1556,7 @@ package final class AudioEngine {
         return code == kAudioDevicePermissionsError || code == kAudioQueueErr_Permissions
     }
 
-    /// Restores the default to `lastConfirmedDefaultUID` (what the user/FineTune intended).
+    /// Restores the default to `lastConfirmedDefaultUID` (what the user/Graft intended).
     /// Falls back to highest-priority device if the confirmed device is gone.
     private func restoreConfirmedDefault() {
         guard isRunning else { return }
@@ -2003,8 +2003,8 @@ package final class AudioEngine {
         // State machine: if we're waiting for macOS to auto-switch after a device connect,
         // check whether this change is the expected auto-switch or user intent.
         if case .pendingAutoSwitch(let pendingUID, let timeoutTask) = outputPriorityState {
-            // Check echoes FIRST — FineTune's own changes (UI, restoreConfirmedDefault)
-            // create echoes. Consuming before Case 1 ensures FineTune UI changes aren't
+            // Check echoes FIRST — Graft's own changes (UI, restoreConfirmedDefault)
+            // create echoes. Consuming before Case 1 ensures Graft UI changes aren't
             // mistaken for macOS auto-switches.
             if outputEchoTracker.consume(newDefaultUID) {
                 return
@@ -2357,9 +2357,9 @@ package final class AudioEngine {
         // If lock is disabled, let system control input freely
         guard settingsManager.appSettings.lockInputDevice else { return }
 
-        // Restore the locked device — any change outside FineTune's UI is either
+        // Restore the locked device — any change outside Graft's UI is either
         // macOS auto-switch or System Settings, and the lock should hold either way.
-        // Users change the lock via FineTune's UI (setLockedInputDevice).
+        // Users change the lock via Graft's UI (setLockedInputDevice).
         guard let lockedUID = settingsManager.lockedInputDeviceUID else { return }
         if newDefaultInputUID != lockedUID {
             restoreLockedInputDevice()
@@ -2419,7 +2419,7 @@ package final class AudioEngine {
         settingsManager.setPreferredInputDeviceUID(device.uid)
     }
 
-    /// Called when user explicitly selects an input device (via FineTune UI).
+    /// Called when user explicitly selects an input device (via Graft UI).
     /// Persists the choice and applies the change.
     package func setLockedInputDevice(_ device: AudioDevice) {
         logger.info("User locked input device to: \(device.name)")

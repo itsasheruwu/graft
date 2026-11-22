@@ -48,7 +48,7 @@ package enum VolumeMapping {
     }
 
     /// Convert URL scheme percentage values to linear PCM gain.
-    /// `finetune://set-volumes` accepts 0...400 where 100% is unity and
+    /// `graft://audio/set-volumes` accepts 0...400 where 100% is unity and
     /// 400% is the documented maximum 4x software boost.
     package static func urlPercentToGain(_ percent: Int) -> Float? {
         guard (0...Int(maxBoostedGain * 100)).contains(percent) else { return nil }

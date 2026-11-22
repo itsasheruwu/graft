@@ -5,7 +5,7 @@
 <h1 align="center">Graft</h1>
 
 <p align="center">
-  <strong>Small fixes, grafted onto the web.</strong><br />
+  <strong>Small fixes for Mac, Windows, and the web.</strong><br />
   <sub>Browser customization, native Mac controls, and activity notifications.</sub>
 </p>
 
@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  The complete Graft project: Chrome extension, macOS app, native messaging bridge, local AI helper, and website.
+  The complete Graft project: Chrome extension, macOS app, native messaging bridge, and website.
 </p>
 
 [Website & interactive preview](https://itsasheruwu.github.io/graft/) · [Downloads](https://github.com/itsasheruwu/graft/releases/latest) · [Browser setup](#install) · [Mac setup](macos/README.md)
@@ -27,7 +27,6 @@
 | Mac app | SwiftUI window, menu bar, Mac controls, Roblox and Spotify activity | [`macos/`](macos/) |
 | Native messaging host | Settings exchange between Chrome and the Mac app | [`GraftNativeHost`](macos/Sources/GraftNativeHost/) |
 | Shared native core | Settings model and bridge protocol | [`GraftCore`](macos/Sources/GraftCore/) |
-| Local AI helper | Optional Codex-powered page rewrite recipes | [`tools/`](tools/) |
 | Website | GitHub Pages site and actual browser UI demo | [`website/`](website/) |
 
 GitHub Releases provides the Mac app for Apple Silicon and a ZIP for Chrome's **Load unpacked** flow. The Mac app can install future releases automatically. See the [Mac setup notes](macos/README.md) for requirements and source builds.
@@ -40,7 +39,6 @@ Settings in the popup and options pages are grouped by topic. Each category coll
 |----------|-------|----------------|
 | **Appearance** | Theme Syncer | Mirrors your system light/dark preference on supported pages. YouTube gets dedicated handling (nested toggle + per-site blocklist). |
 | **Appearance** | Force Dark Mode | Applies a balanced dark palette on sites without native dark themes. Per-site blocklist supported. |
-| **Customization** | AI Rewriter | Optional local Codex helper for turning a plain-English page rewrite prompt into previewed, safe Element Selector recipes. Recipes persist per domain after approval. |
 | **Media** | Asset Finder | Scans the current page for visible images and media; browse them in an in-page panel. |
 | **Media** | Sound Booster | Boosts HTML5 audio and video volume with a global gain control. Per-site blocklist supported. |
 | **Page tools** | Element Selector | Hover and hide page elements. Removals persist per domain even when selector mode is off. Export/import, undo, and bulk unhide supported. Shortcut: `Alt+Shift+E`. |
@@ -101,16 +99,6 @@ To connect Chrome, open the app's **Connection** screen, paste Graft's ID from
 `chrome://extensions`, install the bridge, and reload the extension. The bridge
 only exchanges Graft setting keys; it does not read browsing history or pages.
 
-### Local AI helper
-
-AI Rewriter requires a local helper process. It does not put an OpenAI API key in the extension.
-
-```bash
-npm run ai-helper
-```
-
-Copy the printed token into **Element Selector -> AI Rewriter** in the popup or options page. The helper listens on `127.0.0.1:27491` by default, spawns `codex app-server` over stdio, and requests `gpt-5.5` with medium reasoning. Approved recipes are stored in `chrome.storage.local` under `graftAiRecipesByDomain`.
-
 ### Adding a tweak
 
 1. Register the tweak in [`src/tweaks/registry.js`](src/tweaks/registry.js) (entrypoints, match patterns, storage keys, UI keys, and `ui.category`).
@@ -137,7 +125,6 @@ Bridge + MAIN-world pairs are required when page DOM must be touched; isolated s
 - The Mac app stores its settings, activity logs, and Spotify listening history in local Application Support. Optional Spotify integration reads friend activity through a local Spicetify bridge. Listening history is not uploaded or synced by Graft.
 
 - **Theme Syncer**, **Force Dark Mode**, **Element Selector**, **Asset Finder**, **Sound Booster**, and **Wikipedia Enhancements** run locally in your browser. Hides, layout preferences, and blocklists are stored in extension storage on your device.
-- **AI Rewriter** sends bounded page context and your prompt to the local `graft-ai-helper`; the helper uses your local Codex authentication and returns constrained recipe JSON. Graft never executes model-generated JavaScript.
 - **Roblox Player Watcher** sends only watched usernames or user IDs to Roblox's public user and presence APIs. It does not read or store Roblox cookies.
 - **YouTube Auto Translation** sends text to Google’s Translate API via the extension service worker when a translation is needed. No analytics or accounts are involved.
 
@@ -153,9 +140,9 @@ Architecture notes and agent conventions: [`AGENTS.md`](AGENTS.md).
 
 ### macOS audio and licensing
 
-Graft’s native Audio pane integrates FineTune-derived per-app mixing, routing, EQ,
+Graft’s native Audio pane provides per-app mixing, routing, EQ,
 headphone correction, and device controls. Audio is opt-in and independent of the
 browser extension. See [native audio documentation](macos/README.md#native-audio).
 The combined macOS application is GPLv3 with preserved upstream notices; the
 independent browser extension and website retain the root MIT license. See
-[FineTune attribution and source distribution](macos/FINETUNE-NOTICE.md).
+[upstream attribution and source distribution](macos/FINETUNE-NOTICE.md).

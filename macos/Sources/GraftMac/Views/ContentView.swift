@@ -68,7 +68,7 @@ private struct GraftSidebarIdentity: View {
                 Text("Graft")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.primary)
-                Text("Small fixes, grafted onto the web.")
+                Text("Small fixes for Mac, Windows, and the web.")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

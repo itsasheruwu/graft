@@ -23,7 +23,7 @@ struct AudioView: View {
                 }
                 if audio.hasFineTuneImport {
                     GraftRow {
-                        GraftRowLabel(title: "Bring your FineTune setup", detail: "Preview your settings before copying them into Graft.", symbol: "square.and.arrow.down")
+                        GraftRowLabel(title: "Import existing audio settings", detail: "Preview your settings before copying them into Graft.", symbol: "square.and.arrow.down")
                         Button("Review Import…") {
                             do { importPreview = try audio.previewFineTuneImport(); showingImport = true }
                             catch { audio.message = error.localizedDescription }
@@ -50,7 +50,7 @@ struct AudioView: View {
             AudioSettingsView(audio: audio)
         }
         .searchable(text: $search, prompt: "Search applications")
-        .alert("Import FineTune audio settings?", isPresented: $showingImport) {
+        .alert("Import existing audio settings?", isPresented: $showingImport) {
             Button("Cancel", role: .cancel) {}
             Button("Import") { do { try audio.importFineTune() } catch { audio.message = error.localizedDescription } }
         } message: { Text(importPreview ?? "") }

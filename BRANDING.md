@@ -7,7 +7,7 @@ Visual identity for the Graft Chrome extension and GitHub repository.
 | | |
 |---|---|
 | **Product name** | Graft |
-| **Tagline** | Small fixes, grafted onto the web. |
+| **Tagline** | Small fixes for Mac, Windows, and the web. |
 | **Description** | A focused kit for grafting small fixes onto the web. |
 | **Tone** | Calm, precise, no bloat — one tweak at a time. |
 

@@ -36,7 +36,7 @@ package protocol URLHandlerEngine {
     func unignoreApp(_ identifier: String)
 }
 
-/// Handles URL scheme actions for FineTune (finetune://...)
+/// Handles URL scheme actions for Graft (graft://audio/...)
 @MainActor
 package final class URLHandler {
     private let audioEngine: any URLHandlerEngine
@@ -100,7 +100,7 @@ package final class URLHandler {
     // MARK: - Volume Actions
 
     /// Set volumes for one or more apps
-    /// URL format: finetune://set-volumes?app=com.a&volume=100&app=com.b&volume=50
+    /// URL format: graft://audio/set-volumes?app=com.a&volume=100&app=com.b&volume=50
     /// Volume is percentage: 0-400, where 100 is unity and 400 is 4x boost.
     private func handleSetVolumes(queryItems: [URLQueryItem]) {
         var pairs: [(identifier: String, volumePercent: Int, gain: Float)] = []
@@ -157,7 +157,7 @@ package final class URLHandler {
     }
 
     /// Step volume up or down for an app
-    /// URL format: finetune://step-volume?app=com.a&direction=up (or down)
+    /// URL format: graft://audio/step-volume?app=com.a&direction=up (or down)
     /// Steps by 5% slider position
     private func handleStepVolume(queryItems: [URLQueryItem]) {
         guard let appIdentifier = queryItems.first(where: { $0.name == "app" })?.value else {
@@ -252,7 +252,7 @@ package final class URLHandler {
     // MARK: - Mute Actions
 
     /// Set mute state for one or more apps
-    /// URL format: finetune://set-mute?app=com.a&muted=true&app=com.b&muted=false
+    /// URL format: graft://audio/set-mute?app=com.a&muted=true&app=com.b&muted=false
     private func handleSetMute(queryItems: [URLQueryItem]) {
         var pairs: [(identifier: String, muted: Bool)] = []
         var currentApp: String?
@@ -301,7 +301,7 @@ package final class URLHandler {
     }
 
     /// Toggle mute state for apps
-    /// URL format: finetune://toggle-mute?app=com.a&app=com.b
+    /// URL format: graft://audio/toggle-mute?app=com.a&app=com.b
     private func handleToggleMute(queryItems: [URLQueryItem]) {
         let identifiers = queryItems
             .filter { $0.name.lowercased() == "app" }
@@ -328,7 +328,7 @@ package final class URLHandler {
     // MARK: - Other Actions
 
     /// Set output device for an app
-    /// URL format: finetune://set-device?app=com.a&device=<deviceUID>
+    /// URL format: graft://audio/set-device?app=com.a&device=<deviceUID>
     private func handleSetDevice(queryItems: [URLQueryItem]) {
         guard let appIdentifier = queryItems.first(where: { $0.name == "app" })?.value else {
             logger.error("set-device: missing app parameter")
@@ -445,7 +445,7 @@ package final class URLHandler {
     }
 
     /// Reset apps to 100% volume and unmute
-    /// URL format: finetune://reset?app=com.a&app=com.b or finetune://reset (all apps)
+    /// URL format: graft://audio/reset?app=com.a&app=com.b or graft://audio/reset (all apps)
     private func handleReset(queryItems: [URLQueryItem]) {
         let identifiers = queryItems
             .filter { $0.name.lowercased() == "app" }

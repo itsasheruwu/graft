@@ -42,7 +42,7 @@ package final class GraftAudioService {
 
     package var status: String {
         if !isEnabled { return "Audio management is off" }
-        if conflict { return "Quit FineTune to start Graft audio" }
+        if conflict { return "Quit the other audio mixer to start Graft audio" }
         guard let engine else { return "Starting audio…" }
         switch engine.permission.status {
         case .denied: return "Allow Graft in System Settings → Privacy & Security → Screen & System Audio Recording, then retry."
@@ -150,7 +150,7 @@ package final class GraftAudioService {
     package func previewFineTuneImport() throws -> String {
         let candidate = try SettingsManager.readImport(at: fineTuneDirectory.appendingPathComponent("settings.json"))
         let files = (try? FileManager.default.contentsOfDirectory(at: fineTuneDirectory.appendingPathComponent("AutoEQ"), includingPropertiesForKeys: nil)) ?? []
-        return "Import \(candidate.appVolumes.count) app volume settings, \(candidate.pinnedApps.count) pinned apps, \(candidate.userEQPresets.count) EQ presets, \(candidate.audioProfiles.count) audio profiles, and \(files.filter { $0.pathExtension == "txt" }.count) headphone files. Graft’s current audio settings will be backed up before replacement. FineTune’s files stay intact."
+        return "Import \(candidate.appVolumes.count) app volume settings, \(candidate.pinnedApps.count) pinned apps, \(candidate.userEQPresets.count) EQ presets, \(candidate.audioProfiles.count) audio profiles, and \(files.filter { $0.pathExtension == "txt" }.count) headphone files. Graft’s current audio settings will be backed up before replacement. The original files stay intact."
     }
 
     package func importFineTune() throws {

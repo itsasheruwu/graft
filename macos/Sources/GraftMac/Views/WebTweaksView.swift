@@ -323,7 +323,6 @@ private extension BrowserTweakDefinition {
         switch id {
         case "force-dark-mode": "moon.fill"
         case "theme-syncer": "circle.lefthalf.filled"
-        case "graft-ai-rewriter": "wand.and.sparkles"
         case "asset-finder": "photo.on.rectangle.angled"
         case "sound-booster": "speaker.wave.3.fill"
         case "element-selector": "cursorarrow.rays"
@@ -340,7 +339,6 @@ private extension BrowserTweakDefinition {
         switch id {
         case "force-dark-mode": .indigo
         case "theme-syncer": .teal
-        case "graft-ai-rewriter": .purple
         case "asset-finder": .pink
         case "sound-booster": .orange
         case "element-selector": .blue

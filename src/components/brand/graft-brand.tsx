@@ -2,7 +2,7 @@ import graftIcon from "@/assets/icons/graft-48.png";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
-const TAGLINE = "Small fixes, grafted onto the web.";
+const TAGLINE = "Small fixes for Mac, Windows, and the web.";
 
 type GraftBrandProps = {
   variant?: "popup" | "page";

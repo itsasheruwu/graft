@@ -61,9 +61,6 @@ enum BrowserTweakCatalog {
             .init("themeSyncerEnabled", "Enable Theme Syncer", default: .bool(true)),
             .init("themeSyncerYoutubeEnabled", "Sync YouTube", default: .bool(true), nested: true),
         ]),
-        .init(id: "graft-ai-rewriter", name: "AI Rewriter", category: "Customization", summary: "Reflow, restyle, and save site-specific versions", controls: [
-            .init("graftAiRewriterEnabled", "Enable AI Rewriter", default: .bool(true)),
-        ]),
         .init(id: "asset-finder", name: "Asset Finder", category: "Media", summary: "Browse visible media assets on the current page", controls: [
             .init("assetFinderEnabled", "Enable Asset Finder", default: .bool(true)),
             .init("assetFinderHideBlankAssets", "Hide blank assets", default: .bool(false), nested: true),
@@ -94,9 +91,6 @@ enum BrowserTweakCatalog {
             .init("wikipediaFloatingTocEnabled", "Floating table of contents", default: .bool(false), nested: true),
             .init("wikipediaSearchHighlightEnabled", "Highlight search terms", default: .bool(false), nested: true),
             .init("wikipediaHideDonationBannersEnabled", "Hide fundraising banners", default: .bool(false), nested: true),
-        ]),
-        .init(id: "slopalytics-glass", name: "Slopalytics Glass", category: "Appearance", summary: "Frosted panels for Slopalytics benchmarks and usage", controls: [
-            .init("slopalyticsGlassEnabled", "Enable Slopalytics Glass", default: .bool(false)),
         ]),
         .init(id: "x-quiet-feed", name: "X Quiet Feed", category: "X", summary: "Hide promotions and recommendation clutter", controls: [
             .init("xQuietFeedEnabled", "Enable X Quiet Feed", default: .bool(false)),

@@ -90,7 +90,7 @@ package final class AudioRecordingPermission {
         startRecoveryPolling()
     }
 
-    /// System Settings changes do not always reactivate FineTune immediately.
+    /// System Settings changes do not always reactivate Graft immediately.
     /// Poll briefly after sending the user there so granting access can recover in place.
     package func prepareForSystemSettingsGrant() {
         guard status != .authorized else { return }

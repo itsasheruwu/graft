@@ -13,7 +13,6 @@ describe("groupTweaksByCategory", () => {
 
     expect(groups.map((group) => group.label)).toEqual([
       "Appearance",
-      "Customization",
       "Media",
       "Page tools",
       "Roblox",
@@ -29,7 +28,6 @@ describe("groupTweaksByCategory", () => {
 
     expect(appearance?.tweaks.map((tweak) => tweak.name)).toEqual([
       "Force Dark Mode",
-      "Slopalytics Glass",
       "Theme Syncer",
     ]);
 
@@ -49,9 +47,7 @@ describe("groupTweaksByCategory", () => {
   it("lists tweak ids in grouped A–Z order", () => {
     expect(listTweakIds()).toEqual([
       "force-dark-mode",
-      "slopalytics-glass",
       "theme-syncer",
-      "graft-ai-rewriter",
       "asset-finder",
       "sound-booster",
       "element-selector",
@@ -66,7 +62,6 @@ describe("groupTweaksByCategory", () => {
   it("lists category ids in grouped order", () => {
     expect(listCategoryIds()).toEqual([
       "appearance",
-      "customization",
       "media",
       "page-tools",
       "roblox",

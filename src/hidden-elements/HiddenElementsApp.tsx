@@ -14,12 +14,6 @@ import {
   ELEMENT_SELECTOR_REWRITES_KEY,
 } from "@/lib/element-selector-storage";
 import {
-  GRAFT_AI_RECIPES_KEY,
-  flattenGraftAiRecipeMap,
-  graftAiRecipeRowKey,
-  type GraftAiRecipe,
-} from "@/lib/graft-ai-recipe";
-import {
   editedTextRowKey,
   flattenHiddenMap,
   flattenRewriteMap,
@@ -54,7 +48,6 @@ function truncateText(text: string, max = 120): string {
 export function EditedListApp() {
   const [hiddenRows, setHiddenRows] = useState<HiddenElementRow[]>([]);
   const [rewriteRows, setRewriteRows] = useState<EditedTextRow[]>([]);
-  const [aiRecipeRows, setAiRecipeRows] = useState<GraftAiRecipe[]>([]);
   const [search, setSearch] = useState("");
   const [domainFilter, setDomainFilter] = useState<string>("");
   const [status, setStatus] = useState<string | null>(null);
@@ -65,7 +58,6 @@ export function EditedListApp() {
       {
         [ELEMENT_SELECTOR_REMOVALS_KEY]: {},
         [ELEMENT_SELECTOR_REWRITES_KEY]: {},
-        [GRAFT_AI_RECIPES_KEY]: {},
       },
       (r) => {
         const hiddenMap = r[ELEMENT_SELECTOR_REMOVALS_KEY] as Record<
@@ -76,10 +68,8 @@ export function EditedListApp() {
           string,
           EditedTextRow[]
         >;
-        const aiRecipeMap = r[GRAFT_AI_RECIPES_KEY] as Record<string, unknown>;
         setHiddenRows(flattenHiddenMap(hiddenMap));
         setRewriteRows(flattenRewriteMap(rewriteMap));
-        setAiRecipeRows(flattenGraftAiRecipeMap(aiRecipeMap));
       }
     );
   }, []);
@@ -93,8 +83,7 @@ export function EditedListApp() {
       if (
         area === "local" &&
         (ELEMENT_SELECTOR_REMOVALS_KEY in changes ||
-          ELEMENT_SELECTOR_REWRITES_KEY in changes ||
-          GRAFT_AI_RECIPES_KEY in changes)
+          ELEMENT_SELECTOR_REWRITES_KEY in changes)
       ) {
         load();
       }
@@ -107,10 +96,9 @@ export function EditedListApp() {
     const d = new Set([
       ...hiddenRows.map((r) => r.domain),
       ...rewriteRows.map((r) => r.domain),
-      ...aiRecipeRows.map((r) => r.domain),
     ]);
     return Array.from(d).sort();
-  }, [hiddenRows, rewriteRows, aiRecipeRows]);
+  }, [hiddenRows, rewriteRows]);
 
   const matchesSearch = useCallback(
     (parts: (string | undefined)[]) => {
@@ -159,22 +147,6 @@ export function EditedListApp() {
       ]);
     });
   }, [rewriteRows, domainFilter, matchesSearch]);
-
-  const filteredAiRecipes = useMemo(() => {
-    return aiRecipeRows.filter((row) => {
-      if (domainFilter && row.domain !== domainFilter) {
-        return false;
-      }
-      return matchesSearch([
-        row.domain,
-        row.prompt,
-        row.summary,
-        row.sourceUrl,
-        row.createdAt,
-        ...row.actions.map((action) => `${action.type} ${action.reason}`),
-      ]);
-    });
-  }, [aiRecipeRows, domainFilter, matchesSearch]);
 
   const persistRemovals = (
     next: Record<string, HiddenElementRow[]>,
@@ -257,57 +229,6 @@ export function EditedListApp() {
     });
   };
 
-  const updateAiRecipe = (row: GraftAiRecipe, patch: Partial<GraftAiRecipe>) => {
-    chrome.storage.local.get({ [GRAFT_AI_RECIPES_KEY]: {} }, (r) => {
-      const raw = r[GRAFT_AI_RECIPES_KEY] as Record<string, GraftAiRecipe[]>;
-      const next: Record<string, GraftAiRecipe[]> = { ...raw };
-      for (const key of Object.keys(next)) {
-        if (normalizeDomainKey(key) !== row.domain) {
-          continue;
-        }
-        const list = next[key];
-        if (!Array.isArray(list)) {
-          continue;
-        }
-        next[key] = list.map((recipe) =>
-          recipe.id === row.id ? { ...recipe, ...patch } : recipe
-        );
-      }
-      chrome.storage.local.set({ [GRAFT_AI_RECIPES_KEY]: next }, () => {
-        setStatus(patch.enabled === false ? "Disabled AI recipe." : "Updated AI recipe.");
-        window.setTimeout(() => setStatus(null), 1800);
-        load();
-      });
-    });
-  };
-
-  const removeAiRecipe = (row: GraftAiRecipe) => {
-    chrome.storage.local.get({ [GRAFT_AI_RECIPES_KEY]: {} }, (r) => {
-      const raw = r[GRAFT_AI_RECIPES_KEY] as Record<string, GraftAiRecipe[]>;
-      const next: Record<string, GraftAiRecipe[]> = { ...raw };
-      for (const key of Object.keys(next)) {
-        if (normalizeDomainKey(key) !== row.domain) {
-          continue;
-        }
-        const list = next[key];
-        if (!Array.isArray(list)) {
-          continue;
-        }
-        const filtered = list.filter((recipe) => recipe.id !== row.id);
-        if (filtered.length === 0) {
-          delete next[key];
-        } else {
-          next[key] = filtered;
-        }
-      }
-      chrome.storage.local.set({ [GRAFT_AI_RECIPES_KEY]: next }, () => {
-        setStatus("Removed AI recipe. Reload open tabs to clear its changes.");
-        window.setTimeout(() => setStatus(null), 2400);
-        load();
-      });
-    });
-  };
-
   const bulkUnhideDomain = () => {
     if (!domainFilter) {
       setStatus("Pick a site in the filter first.");
@@ -329,10 +250,8 @@ export function EditedListApp() {
           string,
           EditedTextRow[]
         >;
-        const aiRecipeRaw = r[GRAFT_AI_RECIPES_KEY] as Record<string, GraftAiRecipe[]>;
         const nextHidden: Record<string, HiddenElementRow[]> = { ...hiddenRaw };
         const nextRewrites: Record<string, EditedTextRow[]> = { ...rewriteRaw };
-        const nextAiRecipes: Record<string, GraftAiRecipe[]> = { ...aiRecipeRaw };
         for (const key of Object.keys(nextHidden)) {
           if (normalizeDomainKey(key) === domainFilter) {
             delete nextHidden[key];
@@ -343,16 +262,10 @@ export function EditedListApp() {
             delete nextRewrites[key];
           }
         }
-        for (const key of Object.keys(nextAiRecipes)) {
-          if (normalizeDomainKey(key) === domainFilter) {
-            delete nextAiRecipes[key];
-          }
-        }
         chrome.storage.local.set(
           {
             [ELEMENT_SELECTOR_REMOVALS_KEY]: nextHidden,
             [ELEMENT_SELECTOR_REWRITES_KEY]: nextRewrites,
-            [GRAFT_AI_RECIPES_KEY]: nextAiRecipes,
           },
           () => {
             setStatus(`Cleared all edits on ${domainFilter}. Reload open tabs to restore original pages.`);
@@ -369,13 +282,11 @@ export function EditedListApp() {
       {
         [ELEMENT_SELECTOR_REMOVALS_KEY]: {},
         [ELEMENT_SELECTOR_REWRITES_KEY]: {},
-        [GRAFT_AI_RECIPES_KEY]: {},
       },
       (r) => {
         const payload = {
           [ELEMENT_SELECTOR_REMOVALS_KEY]: r[ELEMENT_SELECTOR_REMOVALS_KEY] ?? {},
           [ELEMENT_SELECTOR_REWRITES_KEY]: r[ELEMENT_SELECTOR_REWRITES_KEY] ?? {},
-          [GRAFT_AI_RECIPES_KEY]: r[GRAFT_AI_RECIPES_KEY] ?? {},
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], {
           type: "application/json",
@@ -409,9 +320,6 @@ export function EditedListApp() {
         }
         if (ELEMENT_SELECTOR_REWRITES_KEY in parsed) {
           patch[ELEMENT_SELECTOR_REWRITES_KEY] = parsed[ELEMENT_SELECTOR_REWRITES_KEY];
-        }
-        if (GRAFT_AI_RECIPES_KEY in parsed) {
-          patch[GRAFT_AI_RECIPES_KEY] = parsed[GRAFT_AI_RECIPES_KEY];
         }
 
         if (Object.keys(patch).length === 0) {
@@ -468,9 +376,8 @@ export function EditedListApp() {
     );
   };
 
-  const totalRows = hiddenRows.length + rewriteRows.length + aiRecipeRows.length;
-  const totalFiltered =
-    filteredHidden.length + filteredRewrites.length + filteredAiRecipes.length;
+  const totalRows = hiddenRows.length + rewriteRows.length;
+  const totalFiltered = filteredHidden.length + filteredRewrites.length;
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
@@ -735,85 +642,6 @@ export function EditedListApp() {
                     >
                       <Pencil className="size-3.5" />
                       Remove edit
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="gap-0 border-border/80 shadow-sm">
-        <CardHeader className="space-y-1 pb-3">
-          <CardTitle className="text-base font-medium">
-            AI recipes (<AnimatedNumber value={filteredAiRecipes.length} />
-            {filteredAiRecipes.length !== aiRecipeRows.length ? (
-              <>
-                {" "}
-                of <AnimatedNumber value={aiRecipeRows.length} />
-              </>
-            ) : null}
-            )
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Approved AI Rewriter recipes saved per site. Disable a recipe to stop
-            reapplying it after reload.
-          </CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="p-0">
-          {filteredAiRecipes.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">
-              {aiRecipeRows.length === 0
-                ? "No AI recipes yet. Use AI Rewrite Page from Element Selector to create one."
-                : "No AI recipes match your filters."}
-            </p>
-          ) : (
-            <ul className="t-stagger is-shown divide-y divide-border">
-              {filteredAiRecipes.map((row, index) => (
-                <li
-                  key={graftAiRecipeRowKey(row)}
-                  className="t-stagger-line flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between"
-                  style={{ transitionDelay: `calc(var(--stagger-stagger) * ${index})` }}
-                >
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {row.domain}
-                    </p>
-                    <p className="text-sm text-foreground">{row.summary}</p>
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {truncateText(row.prompt, 180)}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {row.actions.length} action{row.actions.length === 1 ? "" : "s"} ·{" "}
-                      {row.enabled === false ? "Disabled" : "Enabled"}
-                      {row.createdAt ? ` · Saved ${new Date(row.createdAt).toLocaleString()}` : ""}
-                    </p>
-                    {row.sourceUrl ? (
-                      <p className="break-all text-xs text-muted-foreground">
-                        {row.sourceUrl}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => updateAiRecipe(row, { enabled: row.enabled === false })}
-                    >
-                      {row.enabled === false ? "Enable" : "Disable"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 text-destructive hover:text-destructive"
-                      onClick={() => removeAiRecipe(row)}
-                    >
-                      <Trash2 className="size-3.5" />
-                      Delete
                     </Button>
                   </div>
                 </li>

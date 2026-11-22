@@ -66,12 +66,10 @@ const GALLERY_TWEAK_BADGES: TweakBadgeState = {
   forceDarkMode: false,
   soundBooster: false,
   youtubeAutoTranslate: true,
-  graftAiRewriter: true,
   assetFinder: true,
   elementSelector: false,
   scrollToTop: false,
   wikipediaEnhancements: false,
-  slopalyticsGlass: false,
   xQuietFeed: false,
   robloxPlayerWatcher: false,
 };

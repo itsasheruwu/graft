@@ -136,7 +136,7 @@ package final class AudioDeviceMonitor: AudioDeviceProviding {
                 }
 
                 // Allow user-created aggregate devices (e.g. Multi-Output Device from Audio MIDI Setup)
-                // but skip FineTune's own internal aggregates used for process taps
+                // but skip Graft's own internal aggregates used for process taps
                 if deviceID.isAggregateDevice() && name.hasPrefix("GraftAudio-") { continue }
 
                 // Output devices - filter virtual devices (avoid clutter from Teams Audio, BlackHole, etc.)

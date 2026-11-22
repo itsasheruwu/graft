@@ -5,12 +5,10 @@ export type TweakBadgeState = {
   forceDarkMode: boolean;
   soundBooster: boolean;
   youtubeAutoTranslate: boolean;
-  graftAiRewriter: boolean;
   assetFinder: boolean;
   elementSelector: boolean;
   scrollToTop: boolean;
   wikipediaEnhancements: boolean;
-  slopalyticsGlass: boolean;
   xQuietFeed: boolean;
   robloxPlayerWatcher: boolean;
 };
@@ -20,12 +18,10 @@ const SYNC_KEYS = {
   forceDarkModeEnabled: false,
   soundBoosterEnabled: false,
   youtubeAutoTranslateEnabled: true,
-  graftAiRewriterEnabled: true,
   assetFinderEnabled: true,
   elementSelectorEnabled: false,
   scrollToTopEnabled: false,
   wikipediaEnhancementsEnabled: false,
-  slopalyticsGlassEnabled: false,
   xQuietFeedEnabled: false,
   robloxPlayerWatcherEnabled: false,
 } as const;
@@ -36,12 +32,10 @@ export function useTweakStatusBadges() {
     forceDarkMode: false,
     soundBooster: false,
     youtubeAutoTranslate: true,
-    graftAiRewriter: true,
     assetFinder: true,
     elementSelector: false,
     scrollToTop: false,
     wikipediaEnhancements: false,
-    slopalyticsGlass: false,
     xQuietFeed: false,
     robloxPlayerWatcher: false,
   });
@@ -54,12 +48,10 @@ export function useTweakStatusBadges() {
           forceDarkMode: Boolean(stored.forceDarkModeEnabled),
           soundBooster: Boolean(stored.soundBoosterEnabled),
           youtubeAutoTranslate: Boolean(stored.youtubeAutoTranslateEnabled),
-          graftAiRewriter: Boolean(stored.graftAiRewriterEnabled),
           assetFinder: Boolean(stored.assetFinderEnabled),
           elementSelector: Boolean(stored.elementSelectorEnabled),
           scrollToTop: Boolean(stored.scrollToTopEnabled),
           wikipediaEnhancements: Boolean(stored.wikipediaEnhancementsEnabled),
-          slopalyticsGlass: Boolean(stored.slopalyticsGlassEnabled),
           xQuietFeed: Boolean(stored.xQuietFeedEnabled),
           robloxPlayerWatcher: Boolean(stored.robloxPlayerWatcherEnabled),
         });
@@ -91,10 +83,6 @@ export function useTweakStatusBadges() {
           "youtubeAutoTranslateEnabled" in changes
             ? Boolean(changes.youtubeAutoTranslateEnabled.newValue)
             : prev.youtubeAutoTranslate,
-        graftAiRewriter:
-          "graftAiRewriterEnabled" in changes
-            ? Boolean(changes.graftAiRewriterEnabled.newValue)
-            : prev.graftAiRewriter,
         assetFinder:
           "assetFinderEnabled" in changes
             ? Boolean(changes.assetFinderEnabled.newValue)
@@ -111,7 +99,6 @@ export function useTweakStatusBadges() {
           "wikipediaEnhancementsEnabled" in changes
             ? Boolean(changes.wikipediaEnhancementsEnabled.newValue)
             : prev.wikipediaEnhancements,
-        slopalyticsGlass: "slopalyticsGlassEnabled" in changes ? Boolean(changes.slopalyticsGlassEnabled.newValue) : prev.slopalyticsGlass,
         xQuietFeed:
           "xQuietFeedEnabled" in changes
             ? Boolean(changes.xQuietFeedEnabled.newValue)

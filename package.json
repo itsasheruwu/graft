@@ -1,6 +1,6 @@
 {
   "name": "graft",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A focused kit for grafting small fixes onto the web.",
   "private": true,
   "type": "module",
@@ -19,8 +19,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "watch": "vite build --watch",
-    "ai-helper": "node tools/graft-ai-helper.mjs"
+    "watch": "vite build --watch"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

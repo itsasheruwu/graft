@@ -268,7 +268,7 @@ package final class SettingsManager {
             .replacingOccurrences(of: ":", with: "-")
         let backupURL = settingsDirectory
             .appendingPathComponent("Backups")
-            .appendingPathComponent("settings-\(stamp).finetune-settings")
+            .appendingPathComponent("settings-\(stamp).graft-settings")
         let envelope = makeExportEnvelope(exportedAt: timestamp)
         let data = try Self.exportJSONEncoder.encode(envelope)
         try Self.writeData(data, to: backupURL)
@@ -434,7 +434,7 @@ package final class SettingsManager {
         // Hiding is mutually exclusive with pinning
         settings.pinnedApps.remove(identifier)
         settings.pinnedAppInfo.removeValue(forKey: identifier)
-        // Clear per-app settings — FineTune won't interact with this app
+        // Clear per-app settings — Graft skips this app
         settings.appVolumes.removeValue(forKey: identifier)
         settings.appBoosts.removeValue(forKey: identifier)
         settings.appMutes.removeValue(forKey: identifier)

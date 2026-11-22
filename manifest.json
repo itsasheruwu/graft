@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Graft",
   "description": "A focused kit for grafting small fixes onto the web.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minimum_chrome_version": "111",
   "permissions": ["storage", "tabs", "nativeMessaging", "alarms"],
   "optional_permissions": ["notifications"],
@@ -15,8 +15,7 @@
     "https://translate.googleapis.com/*",
     "https://roblox.com/*",
     "https://www.roblox.com/*",
-    "https://*.roblox.com/*",
-    "http://127.0.0.1/*"
+    "https://*.roblox.com/*"
   ],
   "background": {
     "service_worker": "src/background/service_worker.js"

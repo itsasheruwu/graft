@@ -175,7 +175,7 @@ package final class BluetoothDeviceMonitor {
 
     /// Called when a new CoreAudio output device appears.
     /// Always refreshes the paired list so auto-connected devices (not initiated
-    /// via FineTune) are removed. If a GraftAudio-initiated connection is in flight,
+    /// via Graft) are removed. If a GraftAudio-initiated connection is in flight,
     /// clears the connecting state for devices that succeeded.
     package func notifyDeviceAppearedInCoreAudio() {
         guard powerOnObserver != nil else { return }
@@ -200,7 +200,7 @@ package final class BluetoothDeviceMonitor {
                 refresh()
             }
         } else {
-            // Auto-connected device (not via FineTune) — still need to refresh
+            // Auto-connected device (not via Graft) — still need to refresh
             // so the device is removed from the paired list.
             refresh()
         }

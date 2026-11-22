@@ -1,10 +1,8 @@
-import { SlopalyticsGlassSettings } from "@/components/tweaks/slopalytics-glass-settings";
 import type { ComponentType } from "react";
 
 import { AssetFinderSettings } from "@/components/tweaks/asset-finder-settings";
 import { ElementSelectorSettings } from "@/components/tweaks/element-selector-settings";
 import { ForceDarkModeSettings } from "@/components/tweaks/force-dark-mode-settings";
-import { GraftAiRewriterSettings } from "@/components/tweaks/graft-ai-rewriter-settings";
 import { RobloxPlayerWatcherSettings } from "@/components/tweaks/roblox-player-watcher-settings";
 import { ScrollToTopSettings } from "@/components/tweaks/scroll-to-top-settings";
 import { SoundBoosterSettings } from "@/components/tweaks/sound-booster-settings";
@@ -18,7 +16,6 @@ export type TweakUiVariant = "popup" | "options";
 
 export type TweakCategoryId =
   | "appearance"
-  | "customization"
   | "media"
   | "page-tools"
   | "roblox"
@@ -28,7 +25,6 @@ export type TweakCategoryId =
 
 export const TWEAK_CATEGORY_LABELS: Record<TweakCategoryId, string> = {
   appearance: "Appearance",
-  customization: "Customization",
   media: "Media",
   "page-tools": "Page tools",
   roblox: "Roblox",
@@ -50,11 +46,6 @@ export type TweakCatalogEntry = {
 
 export const TWEAK_CATALOG: TweakCatalogEntry[] = [
   {
-    id: "slopalytics-glass", name: "Slopalytics Glass", category: "appearance", badgeKey: "slopalyticsGlass",
-    taglines: { popup: "A glass finish for Slopalytics", options: "Frosted panels for Slopalytics benchmarks and usage" },
-    Settings: SlopalyticsGlassSettings,
-  },
-  {
     id: "force-dark-mode",
     name: "Force Dark Mode",
     category: "appearance",
@@ -75,17 +66,6 @@ export const TWEAK_CATALOG: TweakCatalogEntry[] = [
       options: "Match page themes to your device appearance",
     },
     Settings: ThemeSyncerSettings,
-  },
-  {
-    id: "graft-ai-rewriter",
-    name: "AI Rewriter",
-    category: "customization",
-    badgeKey: "graftAiRewriter",
-    taglines: {
-      popup: "Reshape the current site",
-      options: "Reflow, restyle, and save site-specific versions",
-    },
-    Settings: GraftAiRewriterSettings,
   },
   {
     id: "asset-finder",
