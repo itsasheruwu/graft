@@ -575,6 +575,16 @@ struct UserEQPresetPersistenceTests {
         try? FileManager.default.removeItem(at: dir)
     }
 
+    private func waitForSettingsWrite(in directory: URL) async throws {
+        let path = directory.appendingPathComponent("settings.json").path
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(10)
+        while !FileManager.default.fileExists(atPath: path) && clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        try #require(FileManager.default.fileExists(atPath: path), "Timed out waiting for the settings write")
+    }
+
     @Test("Created preset survives SettingsManager re-init from same directory")
     func persistenceRoundTrip() async throws {
         let dir = try makeTempDir()
@@ -588,8 +598,7 @@ struct UserEQPresetPersistenceTests {
             settings: EQSettings(bandGains: gains)
         )
 
-        // Wait for debounced save (500ms debounce + margin)
-        try await Task.sleep(for: .milliseconds(1200))
+        try await waitForSettingsWrite(in: dir)
 
         // Phase 2: Re-init from same directory and verify
         let manager2 = SettingsManager(directory: dir)
@@ -611,7 +620,7 @@ struct UserEQPresetPersistenceTests {
         let first = manager1.createUserPreset(name: "First", settings: EQSettings(bandGains: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
         let second = manager1.createUserPreset(name: "Second", settings: EQSettings(bandGains: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
-        try await Task.sleep(for: .milliseconds(1200))
+        try await waitForSettingsWrite(in: dir)
 
         let manager2 = SettingsManager(directory: dir)
         let presets = manager2.getUserPresets()
@@ -631,7 +640,7 @@ struct UserEQPresetPersistenceTests {
         let preset = manager1.createUserPreset(name: "Ephemeral", settings: EQSettings())
         manager1.deleteUserPreset(id: preset.id)
 
-        try await Task.sleep(for: .milliseconds(1200))
+        try await waitForSettingsWrite(in: dir)
 
         let manager2 = SettingsManager(directory: dir)
         #expect(manager2.getUserPresets().isEmpty)
@@ -646,7 +655,7 @@ struct UserEQPresetPersistenceTests {
         let preset = manager1.createUserPreset(name: "Before", settings: EQSettings())
         manager1.updateUserPreset(id: preset.id, name: "After")
 
-        try await Task.sleep(for: .milliseconds(1200))
+        try await waitForSettingsWrite(in: dir)
 
         let manager2 = SettingsManager(directory: dir)
         let loaded = try #require(manager2.getUserPresets().first { $0.id == preset.id })
