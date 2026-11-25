@@ -33,7 +33,7 @@ struct ScenePlaceChart: View {
     var body: some View {
         Canvas { context, size in
             let age = reduceMotion ? 1 : min(1, max(0, elapsed))
-            let settled = 1 - pow(1 - age, 3)
+            let settled = CGFloat(1 - pow(1 - age, 3))
             let scale = max(size.width / 960, size.height / 416) * (1 + 0.081 * (1 - settled))
             let bounds = CGRect(x: (size.width - 960 * scale) / 2 - (1 - settled) * 3,
                                 y: (size.height - 416 * scale) / 2,
