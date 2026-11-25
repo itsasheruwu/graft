@@ -36,7 +36,7 @@ final class DockAIUsageMeterView: NSView {
         case .cursor: tint = NSColor(srgbRed: 0.53, green: 0.43, blue: 0.91, alpha: 1)
         }
 
-        let fill = min(100, usage.percentUsed) / 100
+        let fill = min(100, CGFloat(usage.percentUsed)) / 100
         if fill > 0 {
             let waterline = icon.maxY - side * fill
             let amplitude = min(side * 0.035, side * fill / 2, side * (1 - fill) / 2)
