@@ -10,7 +10,6 @@ let package = Package(
         .executable(name: "GraftNativeHost", targets: ["GraftNativeHost"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/jpsim/Yams.git", exact: "6.2.2"),
         .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.1"),
     ],
     targets: [
@@ -21,10 +20,8 @@ let package = Package(
             name: "GraftMac",
             dependencies: [
                 "GraftCore", "GraftBend", "GraftAudio",
-                .product(name: "Yams", package: "Yams"),
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            resources: [.copy("Resources/MusicSceneMaps"), .copy("Resources/MusicSceneStickers")],
             // The app target is entirely UI-driven, so main-actor isolation is the
             // correct default. GraftCore stays nonisolated for the native host.
             swiftSettings: [.defaultIsolation(MainActor.self)]

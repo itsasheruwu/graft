@@ -12,7 +12,6 @@ final class GraftStore {
     var extensionID = UserDefaults.standard.string(forKey: "graftExtensionID") ?? ""
     var connectionMessage: String?
 
-    let musicScene = MusicSceneWindows()
     let audio = GraftAudioService()
     var requestedDestination: AppDestination?
 

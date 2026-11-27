@@ -29,8 +29,6 @@ struct MacTweaksView: View {
 
             GraftMacAppearanceGroup()
 
-            GraftSettingsGroup("Music") { MusicSceneSettingsRow() }
-
             GraftSettingsGroup(
                 "Finder",
                 footer: "Finder restarts to apply these reversible changes. No files are moved or deleted."

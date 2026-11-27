@@ -1,9 +1,0 @@
-Map data © OpenStreetMap contributors, available under the Open Data Commons Open Database License (ODbL) 1.0.
-https://www.openstreetmap.org/copyright
-https://opendatacommons.org/licenses/odbl/1-0/
-
-Vector tiles from OpenFreeMap, using the © OpenMapTiles schema.
-https://openfreemap.org/
-https://openmaptiles.org/
-
-These three original raster maps depict downtown Asheville, the lower East River, and the Brooklyn Bridge. They were rendered from the November 15, 2026 OpenFreeMap planet set. No location services or remote map requests are used to display them.

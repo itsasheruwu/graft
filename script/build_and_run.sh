@@ -68,7 +68,6 @@ SPARKLE_FRAMEWORK="${SWIFTPM_BUILD_DIR}/artifacts/sparkle/Sparkle/Sparkle.xcfram
 mkdir -p "$APP_MACOS" "$APP_HELPERS" "$APP_RESOURCES" "$APP_FRAMEWORKS"
 /usr/bin/ditto --norsrc "$SPARKLE_FRAMEWORK" "$APP_FRAMEWORKS/Sparkle.framework"
 cp -R "$BIN_DIR/GraftMac_GraftBend.bundle" "$APP_RESOURCES/"
-cp -R "$BIN_DIR/GraftMac_GraftMac.bundle" "$APP_RESOURCES/"
 cp "$MACOS_DIR/BENDABLE-LICENSE" "$MACOS_DIR/BENDABLE-NOTICE.md" "$APP_RESOURCES/"
 cp "$BIN_DIR/Graft" "$APP_MACOS/Graft"
 cp "$BIN_DIR/GraftNativeHost" "$APP_HELPERS/GraftNativeHost"
@@ -76,7 +75,7 @@ cp "$ROOT_DIR/src/assets/icons/graft-256.png" "$APP_RESOURCES/graft-256.png"
 cp "$ROOT_DIR/macos/Resources/graft-spotify-bridge.js" "$APP_RESOURCES/graft-spotify-bridge.js"
 mkdir -p "$APP_RESOURCES/Licenses"
 cp "$SWIFTPM_BUILD_DIR/checkouts/Sparkle/LICENSE" "$APP_RESOURCES/Licenses/SPARKLE-LICENSE"
-for notice in CODEXBAR-LICENSE CODEXBAR-NOTICE.md LICENSE GRAFT-MIT-LICENSE FINETUNE-LICENSE FINETUNE-NOTICE.md FINETUNE-SOURCE.json BENDABLE-LICENSE BENDABLE-NOTICE.md YAMS-LICENSE LIBYAML-LICENSE; do
+for notice in CODEXBAR-LICENSE CODEXBAR-NOTICE.md LICENSE GRAFT-MIT-LICENSE FINETUNE-LICENSE FINETUNE-NOTICE.md FINETUNE-SOURCE.json BENDABLE-LICENSE BENDABLE-NOTICE.md; do
   cp "$MACOS_DIR/$notice" "$APP_RESOURCES/Licenses/$notice"
 done
 chmod +x "$APP_MACOS/Graft" "$APP_HELPERS/GraftNativeHost"
@@ -94,8 +93,8 @@ cat > "$APP_CONTENTS/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>$APP_VERSION</string>
   <key>CFBundleIconFile</key><string>graft-256.png</string>
   <key>LSMinimumSystemVersion</key><string>$MIN_SYSTEM_VERSION</string>
-  <key>NSAppleEventsUsageDescription</key><string>Graft follows the current song and sends playback controls to the music player you connect.</string>
-  <key>NSAudioCaptureUsageDescription</key><string>Graft uses system audio access for application volume, routing, equalization, and music-reactive lighting.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Graft reads and adjusts system audio settings when you use its audio controls.</string>
+  <key>NSAudioCaptureUsageDescription</key><string>Graft uses system audio access for application volume, routing, and equalization.</string>
   <key>NSMicrophoneUsageDescription</key><string>Graft needs microphone access only when the selected audio configuration requires an input-capable device.</string>
   <key>NSBluetoothAlwaysUsageDescription</key><string>Graft uses Bluetooth when you browse or connect paired audio devices.</string>
   <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.itsasheruwu.graft.audio</string><key>CFBundleURLSchemes</key><array><string>graft</string></array></dict></array>
@@ -139,7 +138,6 @@ rm -rf "$DIST_DIR/$APP_NAME.app"
 /usr/bin/ditto --norsrc "$APP_BUNDLE" "$DIST_DIR/$APP_NAME.app"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 clear_bundle_finder_info "$APP_BUNDLE/Contents/Resources/GraftMac_GraftBend.bundle"
-clear_bundle_finder_info "$APP_BUNDLE/Contents/Resources/GraftMac_GraftMac.bundle"
 clear_bundle_finder_info "$APP_BUNDLE"
 if ! SIGNATURE_ERROR="$(/usr/bin/codesign --verify --deep --strict --verbose=4 "$APP_BUNDLE" 2>&1)"; then
   # iCloud can reattach FinderInfo as soon as the bundle is accessed. Verify

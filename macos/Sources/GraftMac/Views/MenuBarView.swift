@@ -33,7 +33,6 @@ struct MenuBarView: View {
                         GraftRow { Text(store.audio.status).font(.callout).foregroundStyle(.secondary) }
                     }
                     GraftRow {
-                        Button("Music Scene") { store.musicScene.openPlayer() }
                         Button("Open Audio Settings") { store.requestedDestination = .audio; reveal() }
                         Spacer()
                         if store.audio.isEnabled { Button("Turn Off") { store.audio.setEnabled(false) } }

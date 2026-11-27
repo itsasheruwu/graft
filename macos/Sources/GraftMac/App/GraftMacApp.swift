@@ -12,11 +12,9 @@ final class GraftAppDelegate: NSObject, NSApplicationDelegate {
     var keepAwake: KeepAwakeService?
     var closedLid: ClosedLidSessionService?
     var stayAwakeCommands: StayAwakeCommandServer?
-    var musicScene: MusicSceneWindows?
     var dockAIUsage: DockAIUsageService?
     private var terminationSource: DispatchSourceSignal?
     func applicationWillTerminate(_ notification: Notification) {
-        musicScene?.stop()
         stayAwakeCommands?.stop()
         dockAIUsage?.stop()
         closedLid?.stop()
@@ -35,7 +33,6 @@ final class GraftAppDelegate: NSObject, NSApplicationDelegate {
         source.setEventHandler { NSApplication.shared.terminate(nil) }
         source.resume()
         terminationSource = source
-        musicScene?.start()
         updater?.startUpdater()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
@@ -51,7 +48,6 @@ struct GraftMacApp: App {
         StayAwakeCommand.runIfRequested()
         let store = GraftStore()
         _store = State(initialValue: store)
-        _appDelegate.wrappedValue.musicScene = store.musicScene
         _appDelegate.wrappedValue.audio = store.audio
         _appDelegate.wrappedValue.keepAwake = store.keepAwake
         _appDelegate.wrappedValue.closedLid = store.closedLid
@@ -67,6 +63,7 @@ struct GraftMacApp: App {
         Window("Graft", id: "main") {
             ContentView()
                 .environment(store)
+                .modifier(BlissStudioNotice())
                 // Installed once at the window root; it walks the window's view tree
                 // to clear AppKit's focus ring from every text field and the toolbar
                 // search field.
@@ -81,10 +78,8 @@ struct GraftMacApp: App {
                 }
             }
             CommandGroup(replacing: .sidebar) {}
-            CommandGroup(after: .windowArrangement) {
-                Button("Open Music Scene") { store.musicScene.openPlayer() }
-                    .keyboardShortcut("m", modifiers: [.command, .shift])
-                Button("Open Music Scene Artwork") { store.musicScene.openArtwork() }
+            CommandGroup(after: .help) {
+                Link("Download Bliss Studio", destination: BlissStudioNotice.repository)
             }
         }
 
