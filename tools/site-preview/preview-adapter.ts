@@ -124,7 +124,7 @@ export async function installPreviewAdapter() {
             active: true,
             currentWindow: true,
             url: "https://journal.example/a-little-room-to-breathe",
-            title: "The everyday journal",
+            title: "A little room to breathe · Fieldwork Journal",
           },
         ];
         callback?.(tabs);

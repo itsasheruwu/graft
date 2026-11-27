@@ -8,11 +8,11 @@ Preview from the repository root:
 python3 -m http.server 4178 --directory website
 ```
 
-Open http://localhost:4178. No extension installation is needed to view the site. The marketing page is plain HTML/CSS/JS; its authentic UI snapshot is built separately. The sample page is an illustration; the embedded popup runs the real Graft UI with isolated demo data. It never changes the visitor's browser settings or plays audio.
+Open http://localhost:4178. No extension installation is needed to view the site. The marketing page is plain HTML/CSS/JS; its authentic UI snapshot is built separately. The sample page is an illustration; the embedded popup runs the real Graft UI with isolated demo data. The toolbar button opens the real popup over the journal. The visitor can play a bundled soundscape and hear Sound Booster adjust its gain. Changes stay in the playground.
 
-`pages.yml` publishes only this directory when website changes reach `main`. Extension builds remain independent. Use relative asset URLs to support the `/graft/` project path. Keep the toolkit and installation copy aligned with what is actually available in the public repository; the native companion is available as source, with no packaged download yet.
+`pages.yml` publishes only this directory when website changes reach `main`. Extension builds remain independent. Use relative asset URLs to support the `/graft/` project path. Keep the toolkit and installation copy aligned with what is actually available in the public repository; the GitHub release ships Chrome and Apple Silicon Mac ZIPs.
 
-The Geist font is self-hosted; its license is in `assets/FONT-LICENSE.txt`. The Graft mark and social image reuse the repository's brand assets. The landscape and feature illustrations are original inline SVG/CSS. The site makes no third-party font, analytics, or API requests.
+The Geist font is self-hosted; its license is in `assets/FONT-LICENSE.txt`. The Graft mark and social image reuse the repository's brand assets. The pixel garden, day/night variants, and feature icons are original local PNGs. The site makes no third-party font, analytics, or API requests.
 
 Before publishing, check desktop and mobile layouts, keyboard operation, the actual popup controls, reset, expandable toolkit/FAQ rows, copy commands (including clipboard-denied fallback), internal anchors, local assets, and reduced-motion behavior.
 

@@ -36,229 +36,109 @@
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="header wrap" aria-label="Graft website">
-      <a class="brand" href="#" aria-label="Graft home"
-        ><img src="assets/graft.png" alt="" width="36" height="36" />Graft</a
-      >
-      <nav aria-label="Main navigation">
-        <a href="#tweaks">Browser</a><a href="#mac">Mac app</a
-        ><a class="github-link" href="https://github.com/itsasheruwu/graft"
-          >GitHub <span aria-hidden="true">↗</span></a
-        >
-      </nav>
-      <a class="button small" href="#install"
-        >Get Graft <span aria-hidden="true">↗</span></a
-      >
+      <a class="brand" href="#main" aria-label="Graft home"><img src="assets/graft.png" width="37" height="37" alt="">Graft</a>
+      <nav aria-label="Main navigation"><a href="#tweaks">Toolkit</a><a href="#demo">Playground</a><a href="#mac">Mac app</a></nav>
+      <a class="button small" href="https://github.com/itsasheruwu/graft">GitHub <span aria-hidden="true">↗</span></a>
     </header>
     <main id="main">
-      <section class="hero wrap">
-        <div class="eyebrow">
-          <span class="dot"></span> BROWSER EXTENSION + MAC APP
-        </div>
-        <h1>Small fixes for<br /><span>Mac, Windows, and the web.</span></h1>
-        <div class="hero-bottom">
-          <p>
-            Customize pages, manage browser tweaks, and control your Mac.<br
-              class="desktop-break"
-            />
-            One open-source project. Only enable what you need.
-          </p>
-          <div class="hero-action">
-            <a class="button" href="#install"
-              >Install Graft <span aria-hidden="true">↗</span></a
-            ><span>Free & open source · Chrome and macOS</span>
+      <section class="intro wrap" aria-labelledby="intro-title">
+        <div class="intro-copy">
+          <div class="platform-note"><span class="pixel-dot" aria-hidden="true"></span> CHROME EXTENSION + MAC APP</div>
+          <h1 id="intro-title">Small tweaks.<br><em>Happy web.</em></h1>
+          <p>Hide the clutter, dim a bright page, or turn up a quiet tab. Make the web feel like yours.</p>
+          <div class="intro-links">
+            <a class="button" href="#install">Get Graft <span aria-hidden="true">↗</span></a>
+            <a class="play-link" href="#demo"><span aria-hidden="true">▷</span> Try the demo</a>
           </div>
         </div>
-        <div class="demo-stage" id="demo">
-          <div class="stage-caption">
-            <span><span class="dot"></span> INTERACTIVE BROWSER PREVIEW</span
-            ><span>ACTUAL GRAFT UI · DEMO DATA</span>
-          </div>
-          <div class="browser" id="preview-browser">
-            <div class="browser-bar">
-              <div class="traffic" aria-hidden="true">
-                <i></i><i></i><i></i>
-              </div>
-              <div class="browser-tab">
-                <span>◈</span> Example article <span>×</span>
-              </div>
-              <span class="new-tab" aria-hidden="true">+</span>
-            </div>
-            <div class="address-bar">
-              <span aria-hidden="true">← &nbsp; → &nbsp; ⟳</span>
-              <div>⌑ &nbsp; journal.example / a-little-room-to-breathe</div>
-              <img
-                src="assets/graft.png"
-                width="21"
-                height="21"
-                alt="Graft extension"
-              />
-            </div>
-            <div class="browser-body">
-              <div class="journal" id="journal">
-                <div class="journal-nav">
-                  <strong>Sample page</strong
-                  ><span>Ideas &nbsp; Places &nbsp; Notes</span><span>↗</span>
-                </div>
-                <div class="article-layout">
-                  <article>
-                    <span class="article-kicker"
-                      >DEMO ARTICLE &nbsp; / &nbsp; BROWSER CUSTOMIZATION</span
-                    >
-                    <h2>Try Graft<br />on this page.</h2>
-                    <p>
-                      Use the popup to change the theme, hide the sponsored
-                      panel,<br />or adjust the demo volume.
-                    </p>
-                    <div
-                      class="landscape"
-                      role="img"
-                      aria-label="Illustrated rolling green hills beneath a pale sun"
-                    >
-                      <svg
-                        viewBox="0 0 600 260"
-                        preserveAspectRatio="xMidYMid slice"
-                      >
-                        <rect width="600" height="260" fill="#d8e3cf" />
-                        <circle cx="405" cy="80" r="39" fill="#f5f2d9" />
-                        <path
-                          d="M0 205Q90 49 236 160T600 91V260H0"
-                          fill="#a0b692"
-                        />
-                        <path
-                          d="M0 170Q136 280 330 154T600 227V260H0"
-                          fill="#668269"
-                        />
-                        <path
-                          d="M0 250Q230 111 490 259L600 260H0"
-                          fill="#344f43"
-                        />
-                        <path
-                          d="M360 260Q390 207 316 186"
-                          fill="none"
-                          stroke="#d4d9ba"
-                          stroke-width="7"
-                        /></svg
-                      ><span>FIELD NOTES — 001</span>
-                    </div>
-                    <div class="article-lines" aria-hidden="true">
-                      <i></i><i></i><i></i>
-                    </div>
-                  </article>
-                  <aside class="clutter" id="clutter" tabindex="-1">
-                    <button id="hide-demo-element" hidden>
-                      Hide this element
-                    </button>
-                    <span>SPONSORED</span>
-                    <div class="ad-shape">Sample<br />advert</div>
-                    <p>Enable Element Selector<br />to hide this panel.</p>
-                    <div class="fake-ad-button">Example sponsored content</div>
-                  </aside>
-                </div>
-                <div class="audio-player">
-                  <span aria-hidden="true">♫</span>
-                  <div>
-                    <strong>Sample audio</strong
-                    ><span>Ambient field recording · Demo</span>
-                  </div>
-                  <div class="wave" aria-hidden="true"></div>
-                  <output id="volume-output">100%</output>
-                </div>
-              </div>
-              <aside
-                class="actual-popup-host"
-                aria-label="Graft's actual interactive popup"
-              >
-                <iframe
-                  id="graft-ui-preview"
-                  class="actual-popup-frame"
-                  src="preview/index.html"
-                  title="Graft popup — interactive demo"
-                  sandbox="allow-scripts allow-same-origin allow-downloads"
-                ></iframe>
-              </aside>
-            </div>
-          </div>
-          <div class="demo-note">
-            <span id="demo-status" role="status"
-              >Actual popup, demo data. Start with Appearance → Force Dark
-              Mode.</span
-            ><button id="reset-demo">
-              Reset preview <span aria-hidden="true">↺</span>
-            </button>
-          </div>
+        <figure class="garden" id="garden">
+          <img class="garden-scene" width="620" height="472" src="assets/garden.png" alt="A tiny pixel-art computer grows a sprout on a floating patch of grass." fetchpriority="high">
+          <button class="garden-switch" type="button" aria-label="Night in the garden" aria-pressed="false" title="Switch between day and night">
+            <span aria-hidden="true">☼</span><span aria-hidden="true">☾</span>
+          </button>
+        </figure>
+      </section>
+      <section class="tool-shelf wrap" id="tweaks" aria-labelledby="shelf-title">
+        <div class="shelf-head"><h2 id="shelf-title">Pick your tweaks.</h2><a href="#all-tweaks">Explore the toolkit <span aria-hidden="true">↓</span></a></div>
+        <div class="shelf-grid">
+          <a class="sample-card theme-card" href="#theme-syncer">
+            <img src="assets/theme.png" alt="" width="68" height="68">
+            <h3>Theme Syncer</h3>
+            <p>Keep supported sites in step with your system theme.</p>
+            <span class="card-arrow" aria-hidden="true">↓</span>
+          </a>
+          <a class="sample-card selector-card" href="#element-selector">
+            <img src="assets/selector.png" alt="" width="68" height="68"><h3>Element Selector</h3>
+            <p>Point at a distraction and hide it from that site.</p>
+            <span class="card-arrow" aria-hidden="true">↓</span>
+          </a>
+          <a class="sample-card sound-card" href="#sound-booster">
+            <img src="assets/sound.png" alt="" width="68" height="68"><h3>Sound Booster</h3>
+            <p>Give quiet audio and video a little extra volume.</p>
+            <span class="card-arrow" aria-hidden="true">↓</span>
+          </a>
         </div>
       </section>
-      <section class="toolkit wrap" id="tweaks">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">BROWSER EXTENSION</div>
-            <h2>Customize the sites you use.</h2>
+      <section class="playground wrap" id="demo" aria-labelledby="playground-title">
+        <div class="desk-heading">
+          <h2 id="playground-title">Playground.</h2>
+          <button id="reset-demo" type="button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> Reset</button>
+        </div>
+        <div class="workbench">
+          <div class="chrome-tabs" role="group" aria-label="Playground tabs">
+            <span class="window-dots"><i></i><i></i><i></i></span>
+            <button type="button" id="journal-tab" class="desk-tab" aria-pressed="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mountain" aria-hidden="true" focusable="false"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg> Fieldwork Journal</button>
+            <div id="detail-tab-group" hidden><button type="button" id="detail-tab" class="desk-tab" aria-pressed="false">Graft settings</button><button type="button" id="close-detail" aria-label="Close Graft tab">×</button></div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus" aria-hidden="true" focusable="false"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
           </div>
-          <p>
-            Eleven independently controlled tweaks.<br />Quick toggles in the
-            popup, details in settings.
-          </p>
-        </div>
-        <div class="feature-grid">
-          <article class="feature feature-dark">
-            <div class="feature-top">
-              <span>01 — APPEARANCE</span><span aria-hidden="true">◐</span>
-            </div>
-            <div class="theme-art" aria-hidden="true">
-              <div class="theme-window light-window">
-                <div>◌ &nbsp; Aa</div>
-                <strong>Light<br />theme</strong><i></i><i></i>
+          <div class="chrome-toolbar">
+            <span class="chrome-nav" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left" aria-hidden="true" focusable="false"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right" aria-hidden="true" focusable="false"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg></span>
+            <span class="location"><span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders-horizontal" aria-hidden="true" focusable="false"><path d="M10 5H3"></path><path d="M12 19H3"></path><path d="M14 3v4"></path><path d="M16 17v4"></path><path d="M21 12h-9"></path><path d="M21 19h-5"></path><path d="M21 5h-7"></path><path d="M8 10v4"></path><path d="M8 12H3"></path></svg></span><span id="tab-address">journal.example<span class="location-path">/a-little-room-to-breathe</span></span></span>
+            <button class="graft-pin" id="graft-pin" aria-expanded="false" aria-controls="popup-flyout" type="button" aria-label="Open Graft toolbar popup">
+              <img src="assets/graft.png" width="21" height="21" alt=""> Graft
+            </button>
+            <span class="chrome-more" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
+          </div>
+          <aside class="popup-flyout" id="popup-flyout" aria-label="Graft toolbar popup" hidden>
+            <iframe id="graft-ui-preview" src="preview/index.html" title="Graft toolbar popup" sandbox="allow-scripts allow-same-origin allow-downloads"></iframe>
+          </aside>
+          <article class="field-journal" id="journal">
+            <header class="field-masthead">
+              <strong>Fieldwork<span>.</span></strong>
+              <span>Notes on walking</span>
+            </header>
+            <div class="field-spread">
+              <div class="field-story">
+                <span class="field-category">Walking journal <span>/</span> 08</span>
+                <h3>A little room <br>to <em>breathe.</em></h3>
+                <p>Past the last switchback, the wind picks up and the trail goes quiet. An afternoon on Juniper Ridge.</p>
+                <div class="field-listen">
+                  <button id="listen-ridge" type="button" aria-label="Play ridge soundscape">
+                    <span class="listen-play"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play" aria-hidden="true" focusable="false"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg></span><span class="listen-pause" hidden><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause" aria-hidden="true" focusable="false"><rect x="14" y="3" width="5" height="18" rx="1"></rect><rect x="5" y="3" width="5" height="18" rx="1"></rect></svg></span>
+                  </button>
+                  <div><strong>Ridge soundscape</strong><span>Wind &amp; birds · 0:14</span></div>
+                  <output id="volume-output" aria-label="Sound gain">100%</output>
+                  <audio id="ridge-audio" preload="none" src="assets/ridge-ambience.mp3"></audio>
+                </div>
               </div>
-              <div class="theme-window dark-window">
-                <div>◔ &nbsp; Aa</div>
-                <strong>Dark<br />theme</strong><i></i><i></i>
-              </div>
-              <span class="theme-orbit">↔</span>
+              <figure class="field-map">
+                <img src="assets/juniper-ridge.webp" width="1360" height="840" alt="Topographic map of the walking route through Juniper Ridge and Fern Hollow." loading="lazy">
+                <figcaption>Fig. 1 <span>Juniper Ridge trail map</span></figcaption>
+              </figure>
             </div>
-            <h3>Theme controls</h3>
-            <p>
-              Keep supported pages in step with your system theme. Give other
-              sites a darker palette when you want one.
-            </p>
-            <span class="feature-label">Theme Syncer + Force Dark Mode</span>
+            <aside id="clutter" class="field-sponsor">
+              <span>Sponsored</span><strong>Pocket Field Press</strong><p>Walking maps for the long way home.</p>
+              <button id="hide-demo-element" type="button" hidden>Hide element</button>
+            </aside>
           </article>
-          <article class="feature feature-focus">
-            <div class="feature-top">
-              <span>02 — CUSTOMIZATION</span><span aria-hidden="true">⌗</span>
-            </div>
-            <div class="focus-art" aria-hidden="true">
-              <div class="focus-line"></div>
-              <div class="selected-element">
-                <span>Selected page element</span
-                ><span class="hide-chip">× &nbsp; Hide element</span
-                ><i class="handle tl"></i><i class="handle tr"></i
-                ><i class="handle bl"></i><i class="handle br"></i>
-              </div>
-              <div class="focus-line short"></div>
-              <div class="focus-line"></div>
-              <svg viewBox="0 0 24 28" class="cursor">
-                <path
-                  d="M2 1L21 17L12 18L8 26Z"
-                  fill="#14251b"
-                  stroke="white"
-                  stroke-width="1.5"
-                />
-              </svg>
-            </div>
-            <h3>Persistent page edits</h3>
-            <p>
-              Point at the clutter. Hide it. Saved removals stay out of your way
-              on that site—even after selector mode is off.
-            </p>
-            <span class="feature-label">Element Selector</span>
-          </article>
+          <iframe id="graft-detail-preview" title="Graft settings" sandbox="allow-scripts allow-same-origin allow-downloads" hidden></iframe>
         </div>
-        <div class="catalog-header">
-          <h3>All browser tweaks</h3>
-          <span>THE COMPLETE BROWSER TOOLKIT</span>
-        </div>
+        <p id="demo-status" role="status"></p>
+      </section>
+      <section class="toolkit wrap" id="all-tweaks" aria-labelledby="catalog-title">
+        <div class="shelf-head"><h2 id="catalog-title">The full toolkit.</h2></div>
         <div class="catalog">
-          <details>
+          <details id="theme-syncer">
             <summary>
               <span class="tool-icon">◐</span><strong>Theme Syncer</strong
               ><span class="tool-description"
@@ -282,7 +162,7 @@
               individual domains whenever the original works better.
             </p>
           </details>
-          <details>
+          <details id="element-selector">
             <summary>
               <span class="tool-icon">⌗</span><strong>Element Selector</strong
               ><span class="tool-description"
@@ -307,7 +187,7 @@
               digging through the document yourself.
             </p>
           </details>
-          <details>
+          <details id="sound-booster">
             <summary>
               <span class="tool-icon">≋</span><strong>Sound Booster</strong
               ><span class="tool-description"
@@ -390,18 +270,17 @@
         <div class="wrap philosophy-inner">
           <div>
             <div class="eyebrow">GRAFT FOR MAC</div>
-            <h2>Native controls.<br />Connected to Chrome.</h2>
+            <h2>A little more control<br />on your Mac.</h2>
             <p class="mac-summary">
-              A SwiftUI app and menu bar companion for web settings, Mac
-              controls, and activity notifications.
+              Tweak your browser from the menu bar, keep your Mac awake, or give the song you’re playing its own space.
             </p>
             <a class="text-link" href="#install-mac"
-              >Build the Mac app <span aria-hidden="true">↓</span></a
+              >Get Graft for Mac <span aria-hidden="true">↓</span></a
             >
           </div>
           <div class="principles">
             <article>
-              <span>01</span>
+
               <div>
                 <h3>Browser settings, on your desktop</h3>
                 <p>
@@ -411,7 +290,7 @@
               </div>
             </article>
             <article>
-              <span>02</span>
+
               <div>
                 <h3>Mac controls</h3>
                 <p>
@@ -422,13 +301,11 @@
               </div>
             </article>
             <article>
-              <span>03</span>
+
               <div>
-                <h3>Roblox &amp; Spotify activity</h3>
+                <h3>Bliss Studio</h3>
                 <p>
-                  Receive Roblox presence notifications. The optional Spotify
-                  integration uses Spicetify for friend activity and listening
-                  history stored on your Mac.
+                  Our music player now has its own Mac app. Get artwork, timed lyrics, and beat-reactive lighting in <a href="https://github.com/itsasheruwu/bliss-studio">Bliss Studio</a>.
                 </p>
               </div>
             </article>
@@ -438,129 +315,37 @@
       <section class="install wrap" id="install">
         <div class="section-heading">
           <div>
-            <div class="eyebrow">INSTALL FROM SOURCE</div>
             <h2>Get Graft.</h2>
           </div>
-          <p>
-            Both apps live in the same repository.<br />Choose the setup you
-            need.
-          </p>
+          <p>Choose the version for your browser or Mac.</p>
         </div>
-        <nav class="install-choice" aria-label="Installation platform">
-          <a href="#install-chrome">Chrome setup ↓</a
-          ><a href="#install-mac">Mac setup ↓</a>
-        </nav>
-        <div class="install-layout" id="install-chrome">
-          <div class="install-intro">
-            <img
-              src="assets/graft.png"
-              alt="Graft icon"
-              width="72"
-              height="72"
-            />
+        <div class="download-grid">
+          <article id="install-chrome">
             <h3>Graft for Chrome</h3>
-            <p>
-              Free. Open source. No Graft account.<br />Requires Chrome 111+ and
-              Node.js 22.12+ with npm to build.
-            </p>
-            <a class="button" href="https://github.com/itsasheruwu/graft"
-              >Get the source <span aria-hidden="true">↗</span></a
-            ><small>Not yet listed in the Chrome Web Store.</small>
-          </div>
-          <div class="install-steps">
-            <div class="step">
-              <span>1</span>
-              <div>
-                <h4>Build the extension.</h4>
-                <p>Run these commands in your terminal.</p>
-                <div class="code-block">
-                  <button id="copy-code" aria-label="Copy install commands">
-                    Copy ↗
-                  </button>
-                  <pre><code id="install-code">git clone https://github.com/itsasheruwu/graft.git
+            <p>Unzip the download. Open <code>chrome://extensions</code>, enable <strong>Developer mode</strong>, then choose <strong>Load unpacked</strong> and select the unzipped folder.</p>
+            <a class="button" href="https://github.com/itsasheruwu/graft/releases/latest/download/Graft-Chrome.zip">Download for Chrome <span aria-hidden="true">↓</span></a>
+            <small>ZIP · Chrome 111 or later</small>
+          </article>
+          <article id="install-mac">
+            <h3>Graft for Mac</h3>
+            <p>Unzip Graft and move it to Applications. To manage Chrome tweaks from your Mac, open <strong>Connection</strong> in Graft and follow the bridge setup.</p>
+            <a class="button" href="https://github.com/itsasheruwu/graft/releases/latest/download/Graft-Mac.zip">Download for Mac <span aria-hidden="true">↓</span></a>
+            <small>ZIP · Apple Silicon · macOS 15 or later · Unnotarized</small>
+          </article>
+        </div>
+        <details class="source-build">
+          <summary>Build from source <span class="plus">+</span></summary>
+          <p>With Node.js 22.12 or later installed, build the extension and load the resulting <code>dist</code> folder in Chrome.</p>
+          <div class="code-block">
+            <button id="copy-code" aria-label="Copy install commands">Copy ↗</button>
+            <pre><code id="install-code">git clone https://github.com/itsasheruwu/graft.git
 cd graft
 npm ci
 npm run build</code></pre>
-                </div>
-                <span id="copy-status" role="status"></span>
-              </div>
-            </div>
-            <div class="step">
-              <span>2</span>
-              <div>
-                <h4>Load it in Chrome.</h4>
-                <p>
-                  Open <code>chrome://extensions</code>, turn on
-                  <strong>Developer mode</strong>, then choose
-                  <strong>Load unpacked</strong> and select the built
-                  <code>dist</code> folder.
-                </p>
-              </div>
-            </div>
-            <div class="step">
-              <span>3</span>
-              <div>
-                <h4>Choose your tweaks.</h4>
-                <p>
-                  Pin Graft to your toolbar. Open the popup, explore the
-                  toolkit, and switch on what feels right.
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
-        <div class="install-layout mac-install" id="install-mac">
-          <div class="install-intro">
-            <span class="eyebrow">NATIVE COMPANION</span>
-            <h3>Graft for Mac</h3>
-            <p>
-              Requires macOS 15+ and Xcode 26+ with Swift 6.2. Build from
-              source; no packaged release yet.
-            </p>
-            <a
-              class="button"
-              href="https://github.com/itsasheruwu/graft/tree/main/macos"
-              >Mac source &amp; setup <span aria-hidden="true">↗</span></a
-            >
-          </div>
-          <div class="install-steps">
-            <div class="step">
-              <span>1</span>
-              <div>
-                <h4>Build and open the app.</h4>
-                <p>From the same Graft checkout, run:</p>
-                <div class="code-block">
-                  <pre><code>./script/build_and_run.sh --verify</code></pre>
-                </div>
-                <p>
-                  The script creates <code>dist/Graft.app</code> and opens it.
-                </p>
-              </div>
-            </div>
-            <div class="step">
-              <span>2</span>
-              <div>
-                <h4>Connect your extension.</h4>
-                <p>
-                  Open <strong>Connection</strong> in Graft. Paste your
-                  extension ID from <code>chrome://extensions</code>, install
-                  the bridge, then reload the extension.
-                </p>
-              </div>
-            </div>
-            <div class="step">
-              <span>3</span>
-              <div>
-                <h4>Configure Mac features.</h4>
-                <p>
-                  Open Mac tweaks to choose your controls. Spotify integration
-                  has its own optional setup. Browser page tweaks still require
-                  the extension.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+          <span id="copy-status" role="status"></span>
+          <a class="text-link" href="https://github.com/itsasheruwu/graft/tree/main/macos#build-and-run">Mac source and build instructions ↗</a>
+        </details>
       </section>
       <section class="faq wrap">
         <div class="eyebrow">QUESTIONS &amp; REQUIREMENTS</div>
@@ -569,7 +354,7 @@ npm run build</code></pre>
             Does it work on every website?<span class="plus">+</span>
           </summary>
           <p>
-            Some tools work broadly; others are designed for specific sites.
+            Some tools work across many sites. Others are built for one.
             Browser settings pages and extension stores are excluded. Individual
             websites can also limit how a tweak behaves.
           </p>
@@ -586,10 +371,7 @@ npm run build</code></pre>
         <details>
           <summary>Is there a Mac app?<span class="plus">+</span></summary>
           <p>
-            Yes. The complete Mac app, native messaging host, and build script
-            are in the repository. Follow the
-            <a href="#install-mac">Mac setup instructions</a> to build it. A
-            packaged download is not available yet.
+            Yes. <a href="#install-mac">Download Graft for Mac</a> for Apple Silicon Macs running macOS 15 or later.
           </p>
         </details>
         <details>
@@ -605,34 +387,15 @@ npm run build</code></pre>
           </p>
         </details>
       </section>
-      <dialog
-        id="graft-preview-dialog"
-        aria-labelledby="graft-preview-dialog-title"
-      >
-        <div class="preview-dialog-bar">
-          <span id="graft-preview-dialog-title">Graft settings · Demo</span
-          ><button
-            id="close-preview-dialog"
-            aria-label="Close Graft settings preview"
-          >
-            Close ×
-          </button>
-        </div>
-        <iframe
-          id="graft-detail-preview"
-          title="Graft settings — interactive demo"
-          sandbox="allow-scripts allow-same-origin allow-downloads"
-        ></iframe>
-      </dialog>
     </main>
     <footer class="wrap">
       <a class="brand" href="#"
         ><img src="assets/graft.png" width="28" height="28" alt="" />Graft</a
-      ><span>Browser extension + Mac app · MIT licensed</span>
+      ><span>Small fixes for Mac, Windows, and the web.</span>
       <div>
         <a href="https://github.com/itsasheruwu/graft">Source ↗</a
         ><a href="https://github.com/itsasheruwu/graft/blob/main/LICENSE"
-          >MIT License ↗</a
+          >Website license ↗</a
         >
       </div>
     </footer>
