@@ -39,11 +39,24 @@ nonisolated struct DMGInstallerTests {
         // A private mount point keeps a running Graft instance from treating the
         // test image as a real user install under /Volumes.
         let mountPoint = root.appendingPathComponent("Mounted")
-        let attached = try DMGInstallerEngine.run("/usr/bin/hdiutil", ["attach", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mountPoint.path, "-plist", image.path])
+        let attached = try attachFixture(image, at: mountPoint)
         let plist = try #require(PropertyListSerialization.propertyList(from: attached, format: nil) as? [String: Any])
         let entities = try #require(plist["system-entities"] as? [[String: Any]])
         let mount = try #require(entities.compactMap { $0["mount-point"] as? String }.first)
         return .init(file: image, volume: URL(fileURLWithPath: mount))
+    }
+
+    private func attachFixture(_ image: URL, at mountPoint: URL) throws -> Data {
+        let arguments = ["attach", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mountPoint.path, "-plist", image.path]
+        // Disk Arbitration can still be releasing the device used by hdiutil create.
+        var retries = 0
+        while true {
+            do { return try DMGInstallerEngine.run("/usr/bin/hdiutil", arguments) }
+            catch let error as DMGInstallerEngine.InstallError where retries < 3 && error.message.contains("attach failed - Resource temporarily unavailable") {
+                retries += 1
+                Thread.sleep(forTimeInterval: TimeInterval(retries))
+            }
+        }
     }
 
     private func destination(in root: URL) throws -> URL {
